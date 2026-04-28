@@ -63,6 +63,8 @@ export function mountBottomNav({ container, bus, EVENTS, nav }) {
           <feComposite in="SourceGraphic" in2="g" operator="atop"/>
         </filter>
         <linearGradient id="bnav-blob-grad" x1="0" y1="0" x2="1" y2="1">
+          <!-- Visual identity gradient — mirrors the splash logo. Hex is intentional
+               (SVG <stop stop-color> doesn't reliably read CSS var() across browsers). -->
           <stop offset="0%"   stop-color="#14F0D8" stop-opacity="0.85"/>
           <stop offset="100%" stop-color="#00B09B" stop-opacity="0.72"/>
         </linearGradient>

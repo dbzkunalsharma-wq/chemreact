@@ -97,7 +97,8 @@ export function mountScanScreen(container, deps) {
     if (symbol && elements[symbol]) {
       const el = elements[symbol];
       slot.classList.add('detected');
-      slot.style.setProperty('--slot-color', el.cpkColor || '#00E5CC');
+      // CPK color comes from elements.json; fallback to brand accent.
+      slot.style.setProperty('--slot-color', el.cpkColor || 'var(--accent)');
       symEl.textContent = symbol;
       nameEl.textContent = el.name;
     } else {

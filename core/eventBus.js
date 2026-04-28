@@ -33,6 +33,7 @@ export const EVENTS = {
   DISTANCE_CHANGE:  'distanceChange',
   COMBINE:          'combine',
   REACTION_DONE:    'reactionDone',
+  REACTION_BROKEN:  'reactionBroken',
   DISCOVERY:        'discovery',
   TOAST:            'toast',
   NAV_TO:           'navTo',         // intent: someone wants to navigate

@@ -11,8 +11,11 @@
 //     gentle sway.
 //   - Lets you cycle through demo molecules with prev/next buttons.
 //
-// When MindAR ships, swap arTransformMock for arTransformMindAR — every other
-// file stays the same.
+// The active provider is supplied by main.js via deps.arTransform (see
+// core/arBootstrap.js). When the real MindAR backend is selected, the simulate
+// controls (prev / next / play) and the two faux DOM cards are hidden — those
+// only make sense when arTransformMock is driving the canvas with synthetic
+// matrices. In real mode the canvas instead reflects whatever the camera sees.
 
 import { mountCardARView }  from '../components/cardARView.js';
 import { arTransformMock }  from '../core/arTransformMock.js';
@@ -20,32 +23,114 @@ import { arTransformMock }  from '../core/arTransformMock.js';
 // Demo molecules to cycle through. Each entry is the formula id to render.
 // Effects are assigned via fallback maps below if reactions.json doesn't have
 // `effect` fields wired in yet.
-const DEMO_MOLECULES = ['H2O', 'CH4', 'NaCl', 'Al2O3', 'CO2', 'SO2', 'Fe2O3'];
+//
+// Curated set spanning Class 10/11 essentials, acids, bases, salts, oxides,
+// and organics — to showcase the full breadth of compounds.json (55 records).
+const DEMO_MOLECULES = [
+  // Essentials every chemistry student must know
+  'H2O', 'CO2', 'NH3', 'CH4', 'NaCl', 'HCl',
+  // Acids
+  'H2SO4', 'HNO3', 'CH3COOH',
+  // Bases
+  'NaOH', 'KOH',
+  // Salts
+  'Na2CO3', 'CaCO3', 'CuSO4', 'CaCl2',
+  // Oxides
+  'CaO', 'MgO', 'ZnO', 'Al2O3', 'Fe2O3',
+  // Organics
+  'C2H5OH', 'C6H12O6'
+];
 
-const AUTO_CYCLE_MS = 4000;
+const AUTO_CYCLE_MS = 3000;
 
 // Fallback compound→effect mapping if the reaction record lacks an `effect`
 // (matches the spirit of reactions.json's product field).
+// Effect vocabulary: water-ripple, gas-bubble, smoke, crystal-sparkle,
+// shimmer, dust, flame, sparks, glow-pulse, cymatic-bloom.
 const COMPOUND_EFFECT_FALLBACK = {
-  'H2O':   'water-ripple',
-  'CO2':   'gas-bubble',
-  'CO':    'smoke',
-  'NaCl':  'crystal-sparkle',
-  'Al2O3': 'shimmer',
-  'Fe2O3': 'dust',
-  'CH4':   'flame',
-  'NH3':   'gas-bubble',
-  'HCl':   'sparks',
-  'SO2':   'smoke',
-  'SiO2':  'crystal-sparkle',
-  'MgO':   'sparks',
-  'CaO':   'glow-pulse',
-  'FeO':   'shimmer',
-  'CuO':   'shimmer',
-  'ZnO':   'sparks',
-  'PbO':   'glow-pulse',
-  'AgCl':  'crystal-sparkle',
-  'FeS':   'shimmer'
+  // essentials
+  'H2O':     'water-ripple',
+  'CO2':     'gas-bubble',
+  'CO':      'smoke',
+  'O2':      'gas-bubble',
+  'H2':      'gas-bubble',
+  'N2':      'gas-bubble',
+  'NH3':     'gas-bubble',
+  'CH4':     'flame',
+  'NaCl':    'crystal-sparkle',
+  // acids
+  'HCl':     'sparks',
+  'H2SO4':   'glow-pulse',
+  'HNO3':    'sparks',
+  'CH3COOH': 'water-ripple',
+  // bases
+  'NaOH':    'glow-pulse',
+  'KOH':     'glow-pulse',
+  'CaOH2':   'glow-pulse',
+  // salts
+  'Na2CO3':  'crystal-sparkle',
+  'NaHCO3':  'crystal-sparkle',
+  'CaCO3':   'crystal-sparkle',
+  'CuSO4':   'shimmer',
+  'CaCl2':   'crystal-sparkle',
+  'KCl':     'crystal-sparkle',
+  'LiCl':    'crystal-sparkle',
+  'MgCl2':   'crystal-sparkle',
+  'AlCl3':   'crystal-sparkle',
+  'FeCl3':   'shimmer',
+  'CuCl2':   'shimmer',
+  'ZnCl2':   'crystal-sparkle',
+  'NaF':     'crystal-sparkle',
+  'AgCl':    'crystal-sparkle',
+  'AgNO3':   'glow-pulse',
+  // oxides
+  'Al2O3':   'shimmer',
+  'Fe2O3':   'dust',
+  'Fe3O4':   'shimmer',
+  'FeO':     'shimmer',
+  'CuO':     'shimmer',
+  'MgO':     'sparks',
+  'CaO':     'glow-pulse',
+  'ZnO':     'sparks',
+  'PbO':     'glow-pulse',
+  'SO2':     'smoke',
+  'SiO2':    'crystal-sparkle',
+  'K2O':     'glow-pulse',
+  'Li2O':    'glow-pulse',
+  'P2O5':    'smoke',
+  // organics
+  'C2H5OH':  'water-ripple',
+  'C6H12O6': 'cymatic-bloom',
+  'C2H6':    'flame',
+  'C2H4':    'flame',
+  'C2H2':    'flame',
+  'C6H6':    'shimmer',
+  // halides / sulfides / hydrides
+  'CCl4':    'water-ripple',
+  'PCl3':    'gas-bubble',
+  'ZnS':     'glow-pulse',
+  'LiH':     'sparks',
+  'FeS':     'shimmer'
+};
+
+// Real-AR default mapping: when a single element card is detected, we still
+// want something visually meaningful to spawn. Diatomic gases expand to their
+// natural molecular form; metals/non-metals render as the element itself.
+// Keys are the elementIds emitted by arTransformMindAR.js (see
+// assets/targets/index.json), values are formulaIds in data/molecules.json.
+const DEFAULT_FORMULA_BY_ELEMENT = {
+  H:  'H2',
+  O:  'O2',
+  N:  'N2',
+  Cl: 'Cl2',
+  C:  'C',
+  Na: 'Na',
+  Mg: 'Mg',
+  Ca: 'Ca',
+  Al: 'Al',
+  Fe: 'Fe',
+  Cu: 'Cu',
+  Zn: 'Zn'
 };
 
 /** Look up the effect name for a product, preferring reactions.json data. */
@@ -102,11 +187,21 @@ function buildFakeCardSVG({ symbol, name, atomicNumber }) {
 }
 
 export function mountCardARScreen(container, deps) {
-  const { bus, EVENTS, elements, compounds, reactions, molecules } = deps || {};
+  const {
+    bus, EVENTS, elements, compounds, reactions, molecules,
+    arTransform: depsArTransform,
+    arMode
+  } = deps || {};
   const reactionList = Array.isArray(reactions) ? reactions : (reactions?.reactions || []);
+
+  // Resolve transform provider: prefer the one chosen at boot, fall back to
+  // mock for any caller that mounts this screen without going through main.js.
+  const transformProvider = depsArTransform || arTransformMock;
+  const isReal = arMode === 'real';
 
   // ── Layout ──
   container.classList.add('car-screen');
+  if (isReal) container.classList.add('car-real-mode');
   container.innerHTML = `
     <div class="car-camera-bg"></div>
 
@@ -167,7 +262,7 @@ export function mountCardARScreen(container, deps) {
   // ── Mount the AR view on the dedicated canvas host ──
   const canvasHost = container.querySelector('[data-canvas-host]');
   const view = mountCardARView(canvasHost, {
-    transformProvider: arTransformMock,
+    transformProvider,
     moleculesData: molecules,
     elementsData:  elements,
     compoundsData: compounds,
@@ -248,9 +343,42 @@ export function mountCardARScreen(container, deps) {
   }
 
   // ── Initial paint ──
-  refreshFakeCards();
-  applyCardsToRenderer();
-  refreshReadout();
+  // In real mode we do NOT pre-add the synthetic "card-a"/"card-b" targets —
+  // the cardARView listens to transformProvider.onTargetFound and will spawn
+  // groups with the real elementId-keyed targetIds emitted by MindAR.
+  if (!isReal) {
+    refreshFakeCards();
+    applyCardsToRenderer();
+    refreshReadout();
+  }
+
+  // ── Real-mode: bind detected element cards to their default molecules ──
+  // CardRenderer subscribes to onTargetFound first (in its constructor), so by
+  // the time our handler runs, the empty group already exists in its _cards
+  // map and setMoleculeForTarget can populate it. We also listen on
+  // onMatrixUpdate as a safety net for providers that emit updates before
+  // the targetFound event (arTransformMindAR.js synthesises a found event in
+  // that case via its seenFound set, but other providers may not).
+  let unsubReal = () => {};
+  if (isReal) {
+    const seenTargets = new Set();
+    const applyDefaults = (targetId) => {
+      if (!targetId || seenTargets.has(targetId)) return;
+      seenTargets.add(targetId);
+      const formulaId  = DEFAULT_FORMULA_BY_ELEMENT[targetId] || targetId;
+      const effectName = resolveEffect(formulaId, reactionList);
+      view.renderer.setMoleculeForTarget(targetId, formulaId);
+      view.renderer.setEffectForTarget(targetId, effectName);
+    };
+    const u1 = transformProvider.onTargetFound(({ targetId }) => applyDefaults(targetId));
+    const u2 = transformProvider.onMatrixUpdate(({ targetId }) => applyDefaults(targetId));
+    const u3 = transformProvider.onTargetLost(({ targetId }) => seenTargets.delete(targetId));
+    unsubReal = () => {
+      try { u1 && u1(); } catch (_e) {}
+      try { u2 && u2(); } catch (_e) {}
+      try { u3 && u3(); } catch (_e) {}
+    };
+  }
 
   // ── Auto-cycle ──
   let autoTimer = null;
@@ -292,18 +420,39 @@ export function mountCardARScreen(container, deps) {
   const prevBtn = container.querySelector('[data-act="prev"]');
   const nextBtn = container.querySelector('[data-act="next"]');
   if (backBtn) backBtn.addEventListener('click', onBack);
-  if (prevBtn) prevBtn.addEventListener('click', onPrev);
-  if (nextBtn) nextBtn.addEventListener('click', onNext);
-  if (playBtn) playBtn.addEventListener('click', onPlay);
-  window.addEventListener('keydown', onKey);
+  // Mock-only simulate controls. In real-AR mode the molecule shown follows
+  // whichever physical card is in view, so cycling/auto-play makes no sense —
+  // hide and disable them.
+  if (!isReal) {
+    if (prevBtn) prevBtn.addEventListener('click', onPrev);
+    if (nextBtn) nextBtn.addEventListener('click', onNext);
+    if (playBtn) playBtn.addEventListener('click', onPlay);
+    window.addEventListener('keydown', onKey);
+  } else {
+    for (const btn of [prevBtn, nextBtn, playBtn]) {
+      if (!btn) continue;
+      btn.disabled = true;
+      btn.setAttribute('aria-hidden', 'true');
+      btn.style.display = 'none';
+    }
+    // Faux DOM cards are mock-only stand-ins.
+    for (const el of cardEls) { if (el) el.style.display = 'none'; }
+    for (const el of formulaLabelEls) { if (el) el.style.display = 'none'; }
+    // Re-label the AR mode pill so users see real-vs-mock at a glance.
+    const pill = container.querySelector('.car-mode-pill');
+    if (pill) pill.textContent = 'AR LIVE';
+  }
 
   function unmount() {
     stopAutoCycle();
+    unsubReal();
     if (backBtn) backBtn.removeEventListener('click', onBack);
-    if (prevBtn) prevBtn.removeEventListener('click', onPrev);
-    if (nextBtn) nextBtn.removeEventListener('click', onNext);
-    if (playBtn) playBtn.removeEventListener('click', onPlay);
-    window.removeEventListener('keydown', onKey);
+    if (!isReal) {
+      if (prevBtn) prevBtn.removeEventListener('click', onPrev);
+      if (nextBtn) nextBtn.removeEventListener('click', onNext);
+      if (playBtn) playBtn.removeEventListener('click', onPlay);
+      window.removeEventListener('keydown', onKey);
+    }
     try { view.unmount(); } catch (e) { console.warn('[cardAR] view unmount error', e); }
   }
 

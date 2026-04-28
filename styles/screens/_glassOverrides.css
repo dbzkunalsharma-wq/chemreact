@@ -43,7 +43,7 @@
 }
 .filter-tab.active {
   background: var(--accent) !important;
-  color: #052020 !important;
+  color: var(--on-accent) !important;
   border-color: transparent !important;
   box-shadow: 0 6px 18px rgba(0,229,204,0.35) !important;
 }

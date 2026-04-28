@@ -15,8 +15,56 @@ export function mountHomeScreen(container, deps) {
     .then(m => { mountReactionCard = m.mountReactionCard || null; renderReactionsList(); })
     .catch(() => { /* fallback used */ });
 
+  // Mascot is optional: dynamically loaded so a missing/broken module
+  // doesn't break the home screen. API: mountMascot(parent, { size, expression, pose })
+  //   -> { el, setExpression, setPose, unmount }
+  // Available expressions: happy | excited | thinking | wow | wink
+  // Available poses:       idle | bounce | wave | celebrate
+  let mascot = null;
+  let mascotResetTimer = null;
+  let offDiscoveryMascot = null;
+  const mascotImport = import('../components/mascot.js')
+    .then(m => {
+      const slot = container.querySelector('[data-mascot-slot]');
+      if (!slot || !m.mountMascot) return;
+      mascot = m.mountMascot(slot, { size: 72, expression: 'happy', pose: 'idle' });
+
+      // Tap → "thinking" (closest available to "curious") for 1.5s, then back.
+      const onMascotTap = () => {
+        if (!mascot) return;
+        mascot.setExpression('thinking');
+        if (mascotResetTimer) clearTimeout(mascotResetTimer);
+        mascotResetTimer = setTimeout(() => {
+          if (mascot) mascot.setExpression('happy');
+          mascotResetTimer = null;
+        }, 1500);
+      };
+      slot.addEventListener('click', onMascotTap);
+      listenerCleanups.push(() => slot.removeEventListener('click', onMascotTap));
+
+      // DISCOVERY → excited + celebrate pose for ~3s, then settle to happy/idle.
+      offDiscoveryMascot = bus.on(EVENTS.DISCOVERY, () => {
+        if (!mascot) return;
+        mascot.setExpression('excited');
+        mascot.setPose('celebrate');
+        if (mascotResetTimer) clearTimeout(mascotResetTimer);
+        mascotResetTimer = setTimeout(() => {
+          if (mascot) {
+            mascot.setExpression('happy');
+            mascot.setPose('idle');
+          }
+          mascotResetTimer = null;
+        }, 3000);
+      });
+    })
+    .catch(() => { /* mascot is opt-out friendly */ });
+
+  // Click-listener cleanup registry (hoisted so async mascot init can register).
+  const listenerCleanups = [];
+
   // Layout shell.
   container.innerHTML = `
+    <div class="home-mascot-slot" data-mascot-slot aria-label="Lab mascot"></div>
     <div class="home-top">
       <div class="trainer-row">
         <div class="trainer-ava" data-act="profile">KM</div>
@@ -33,13 +81,13 @@ export function mountHomeScreen(container, deps) {
     </div>
 
     <div class="scroll home-scroll">
-      <div class="sec" style="padding-top:4px;">
+      <div class="sec sec-first">
         <div class="daily" data-act="daily">
           <div class="daily-chip"><span class="dot"></span>Daily Quest</div>
           <div class="daily-title">Scan <span>2 new cards</span><br>to unlock a reaction</div>
           <div class="daily-sub">Point your camera at any element card to begin. Combine two to discover a molecule.</div>
           <div class="daily-foot">
-            <div class="daily-cta">Start Quest <span style="font-size:16px;">→</span></div>
+            <div class="daily-cta">Start Quest <span class="daily-cta-arrow">→</span></div>
           </div>
         </div>
       </div>
@@ -160,9 +208,10 @@ export function mountHomeScreen(container, deps) {
 
   function renderFallbackChip(node, id, el, owned) {
     node.className = 'el-chip' + (owned ? '' : ' locked');
-    node.style.setProperty('--el-color', el.cpkColor || '#888');
+    // CPK colors are external data; the muted fallback keeps the chip readable.
+    node.style.setProperty('--el-color', el.cpkColor || 'var(--muted)');
     node.innerHTML = `
-      <div class="el-dot" style="background:${el.cpkColor || '#444'};color:#0a0a0a;">${id}</div>
+      <div class="el-dot">${id}</div>
       <div class="el-sym">${el.name}</div>
       <div class="el-num">${el.z}</div>
       <div class="lock">🔒</div>
@@ -207,7 +256,7 @@ export function mountHomeScreen(container, deps) {
     const formula = compound?.formula || rxn.product;
     const name = compound?.name || rxn.product;
     node.innerHTML = `
-      <div class="rc-icon" style="background:linear-gradient(135deg,var(--teal),var(--accent));color:white;">⚗️</div>
+      <div class="rc-icon rc-icon-default">⚗️</div>
       <div class="rc-info">
         <div class="rc-formula">${formula}</div>
         <div class="rc-name">${name}</div>
@@ -227,8 +276,6 @@ export function mountHomeScreen(container, deps) {
   }
 
   // -------- click bindings --------
-  const listenerCleanups = [];
-
   function bindClick(selector, handler) {
     const node = container.querySelector(selector);
     if (!node) return;
@@ -260,6 +307,12 @@ export function mountHomeScreen(container, deps) {
   return {
     unmount() {
       offDiscovery();
+      if (offDiscoveryMascot) { try { offDiscoveryMascot(); } catch (_e) {} offDiscoveryMascot = null; }
+      if (mascotResetTimer) { clearTimeout(mascotResetTimer); mascotResetTimer = null; }
+      if (mascot && typeof mascot.unmount === 'function') {
+        try { mascot.unmount(); } catch (_e) {}
+        mascot = null;
+      }
       listenerCleanups.forEach(fn => { try { fn(); } catch (_e) {} });
       listenerCleanups.length = 0;
     },

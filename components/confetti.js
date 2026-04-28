@@ -9,12 +9,14 @@ function readVar(name, fallback) {
 }
 
 function defaultColors() {
+  // Fallbacks mirror tokens.css so the burst still reads "brand" if the CSS
+  // hasn't loaded yet. Keep these in sync if tokens.css colors change.
   return [
-    readVar('--accent', '#4cd6ff'),
-    readVar('--gold',   '#ffd166'),
-    readVar('--teal',   '#2bd9c4'),
-    readVar('--streak', '#ff7a5c'),
-    '#ffffff'
+    readVar('--accent', '#00E5CC'),
+    readVar('--gold',   '#FFC857'),
+    readVar('--teal',   '#0D7377'),
+    readVar('--streak', '#FF7A45'),
+    readVar('--white',  '#FFFFFF')
   ];
 }
 

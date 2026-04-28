@@ -200,3 +200,55 @@
   background: var(--accent);
   box-shadow: 0 0 8px rgba(0, 229, 204, 0.5);
 }
+
+/* Error placeholder when an unknown element id is selected */
+#screen-elementDetail .edet-missing {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--muted);
+  gap: 12px;
+}
+#screen-elementDetail .edet-missing-emoji { font-size: 48px; }
+
+/* Uses-list bullets — flat list with custom dot before each <li> */
+#screen-elementDetail .edet-uses {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+#screen-elementDetail .edet-uses li {
+  font-size: 13px;
+  color: var(--text2);
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+#screen-elementDetail .edet-uses li .edet-uses-dot { color: var(--accent); }
+#screen-elementDetail .edet-uses-empty {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+/* Empty-state inside reactions box */
+#screen-elementDetail .edet-rx-empty {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+/* Accent-on-teal gradient pill icon used in reaction rows */
+#screen-elementDetail .edet-rx-ico {
+  background: linear-gradient(135deg, var(--teal), var(--accent));
+  color: var(--white);
+}
+
+/* Chevron at the end of each reaction row */
+#screen-elementDetail .edet-rx-chev {
+  color: var(--muted);
+  font-size: 18px;
+}

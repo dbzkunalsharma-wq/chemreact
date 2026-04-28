@@ -217,7 +217,7 @@
     rgba(0, 229, 204, 0.55) 0%,
     rgba(0, 180, 160, 0.45) 100%);
   border-color: rgba(0, 229, 204, 0.85);
-  color: #042624;
+  color: var(--on-accent-4);
   box-shadow: 0 4px 14px rgba(0, 229, 204, 0.35);
 }
 

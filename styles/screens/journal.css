@@ -117,3 +117,46 @@
   margin-top: 6px;
   line-height: 1.5;
 }
+
+/* Back button positioning (shared visual with .edet-back / .lib-back) */
+#screen-journal .edet-back {
+  position: absolute;
+  top: calc(40px + var(--safe-t));
+  left: 20px;
+}
+
+/* Scrollable list area inside the journal */
+#screen-journal .jr-list {
+  padding: 8px 20px calc(120px + var(--safe-b));
+}
+
+/* Empty-state when no discoveries yet */
+#screen-journal .jr-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 24px;
+  gap: 14px;
+  text-align: center;
+}
+#screen-journal .jr-empty-emoji  { font-size: 56px; }
+#screen-journal .jr-empty-title  { font-size: 15px; font-weight: 700; color: var(--text); }
+#screen-journal .jr-empty-body   {
+  font-size: 12px;
+  color: var(--muted);
+  max-width: 240px;
+  line-height: 1.5;
+}
+#screen-journal .jr-empty-cta {
+  padding: 11px 24px;
+  font-size: 13px;
+}
+
+/* Section grouping (Today / Yesterday / This Week / Earlier) */
+#screen-journal .jr-section { margin-top: 18px; }
+#screen-journal .jr-section-head {
+  margin-bottom: 8px;
+  color: var(--muted);
+}
+#screen-journal .jr-card { margin-bottom: 8px; }

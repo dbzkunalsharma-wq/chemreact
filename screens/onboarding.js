@@ -94,8 +94,9 @@ export function mountOnboardingScreen(container, deps) {
 
     dotEls.forEach((d, i) => d.classList.toggle('active', i === index));
 
+    // Hidden via the boolean `hidden` attribute (CSS handles display:none).
+    // No inline visibility toggle — the `[hidden]` attribute is enough.
     backBtn.toggleAttribute('hidden', index === 0);
-    backBtn.style.visibility = index === 0 ? 'hidden' : 'visible';
 
     nextBtn.setLabel(index === SLIDES.length - 1 ? 'Get Started' : 'Next');
   }

@@ -59,12 +59,12 @@ export function mountJournalScreen(container, deps) {
         </div>
       </div>
 
-      <div class="edet-back" data-act="back" style="position:absolute;top:calc(40px + var(--safe-t));left:20px;">
+      <div class="edet-back" data-act="back">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
       </div>
 
       <div class="scroll">
-        <div data-list style="padding:8px 20px calc(120px + var(--safe-b));"></div>
+        <div class="jr-list" data-list></div>
       </div>
     `;
 
@@ -77,12 +77,12 @@ export function mountJournalScreen(container, deps) {
 
     if (journal.length === 0) {
       const empty = document.createElement('div');
-      empty.style.cssText = 'display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 24px;gap:14px;text-align:center;';
+      empty.className = 'jr-empty-state';
       empty.innerHTML = `
-        <div style="font-size:56px;">🔬</div>
-        <div style="font-size:15px;font-weight:700;color:var(--text);">No discoveries yet</div>
-        <div style="font-size:12px;color:var(--muted);max-width:240px;line-height:1.5;">Scan a card to log your first element or reaction. Every discovery is saved here.</div>
-        <button class="filter-tab active" data-act="scan" style="padding:11px 24px;font-size:13px;">📷 Scan a card</button>
+        <div class="jr-empty-emoji">🔬</div>
+        <div class="jr-empty-title">No discoveries yet</div>
+        <div class="jr-empty-body">Scan a card to log your first element or reaction. Every discovery is saved here.</div>
+        <button class="filter-tab active jr-empty-cta" data-act="scan">📷 Scan a card</button>
       `;
       listHost.appendChild(empty);
       const scanBtn = empty.querySelector('[data-act="scan"]');
@@ -101,17 +101,15 @@ export function mountJournalScreen(container, deps) {
     Object.entries(buckets).forEach(([label, items]) => {
       if (items.length === 0) return;
       const sec = document.createElement('div');
-      sec.style.cssText = 'margin-top:18px;';
+      sec.className = 'jr-section';
       const h = document.createElement('div');
-      h.className = 'edet-box-t';
-      h.style.cssText = 'margin-bottom:8px;color:var(--muted);';
+      h.className = 'edet-box-t jr-section-head';
       h.textContent = label;
       sec.appendChild(h);
 
       items.forEach(entry => {
         const card = document.createElement('div');
-        card.className = 'rxn-card';
-        card.style.marginBottom = '8px';
+        card.className = 'rxn-card jr-card';
 
         let formula, name, tileNumber, tileSymbol, tileName, tileAccent;
         if (entry.type === 'compound') {

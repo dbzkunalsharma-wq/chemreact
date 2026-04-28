@@ -34,7 +34,7 @@
   place-items: center;
   font-weight: 800; font-size: 14px;
   letter-spacing: 0.5px;
-  color: #062024;
+  color: var(--on-accent-2);
   flex-shrink: 0;
   cursor: pointer;
   background:
@@ -121,7 +121,7 @@
   border-radius: 20px;
   padding: 20px;
   overflow: hidden;
-  background: linear-gradient(135deg, #0D7377 0%, #0A5255 60%, #08343A 100%);
+  background: linear-gradient(135deg, var(--teal) 0%, var(--teal3) 60%, var(--teal4) 100%);
   cursor: pointer;
   transition: transform 0.2s;
   border: 1px solid rgba(0, 229, 204, 0.25);
@@ -187,10 +187,14 @@
   font-size: 12px; font-weight: 700; color: var(--gold);
 }
 .daily-cta {
-  font-size: 12px; font-weight: 700; color: white;
+  font-size: 12px; font-weight: 700; color: var(--white);
   letter-spacing: 0.4px;
   display: flex; align-items: center; gap: 4px;
 }
+.daily-cta .daily-cta-arrow { font-size: 16px; }
+
+/* First section under the home top-bar — extra breathing room */
+#screen-home .sec.sec-first { padding-top: 4px; }
 
 /* Stats strip */
 .stats-strip {
@@ -378,7 +382,7 @@
   flex-direction: row;
   align-items: center;
   gap: 14px;
-  color: #052020;
+  color: var(--on-accent);
   box-shadow:
     0 14px 32px rgba(0,229,204,0.35),
     inset 0 1px 0 rgba(255,255,255,0.25);
@@ -386,7 +390,7 @@
 }
 .bento-scanner-icon {
   font-size: 28px;
-  color: #052020;
+  color: var(--on-accent);
   flex-shrink: 0;
   width: 44px;
   height: 44px;
@@ -401,7 +405,7 @@
   font-size: 16px;
   font-weight: 600;
   letter-spacing: -0.01em;
-  color: #052020;
+  color: var(--on-accent);
   line-height: 1.1;
 }
 .bento-scanner-sub {
@@ -413,7 +417,7 @@
 }
 .bento-scanner-arrow {
   font-size: 20px;
-  color: #052020;
+  color: var(--on-accent);
   font-weight: 400;
 }
 
@@ -469,3 +473,27 @@
   margin-top: 1px;
   letter-spacing: 0.3px;
 }
+
+/* ── Mascot floating slot ──────────────────────────────────────────────
+ * Anchored to bottom-left, above the bnav (which sits at ~80px from bottom).
+ * Sized to host a ~72px mascot. The mascot SVG itself has pointer-events:none
+ * (set by mascot.css), so we re-enable hits on this wrapper via a transparent
+ * tap target. z-index keeps it under modal overlays but above scroll content.
+ */
+#screen-home .home-mascot-slot {
+  position: absolute;
+  left: 14px;
+  bottom: calc(96px + var(--safe-b, 0px));
+  width: 72px;
+  height: 96px;
+  z-index: 6000;
+  cursor: pointer;
+  pointer-events: auto;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.18s var(--ease-out, ease-out);
+}
+#screen-home .home-mascot-slot:active { transform: scale(0.94); }
+/* Re-enable pointer events on the inner mascot wrapper (mascot.css disables
+ * them by default for the bare component). */
+#screen-home .home-mascot-slot .mascot { pointer-events: auto; }
+

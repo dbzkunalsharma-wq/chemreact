@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "_comment": "Maps MindAR target indices (the order images were added in the .mind compiler) to element IDs from data/elements.json. Edit this when you add or reorder cards.",
+  "targets": [
+    { "index": 0,  "elementId": "H",  "label": "Hydrogen"  },
+    { "index": 1,  "elementId": "O",  "label": "Oxygen"    },
+    { "index": 2,  "elementId": "C",  "label": "Carbon"    },
+    { "index": 3,  "elementId": "N",  "label": "Nitrogen"  },
+    { "index": 4,  "elementId": "Na", "label": "Sodium"    },
+    { "index": 5,  "elementId": "Cl", "label": "Chlorine"  },
+    { "index": 6,  "elementId": "Mg", "label": "Magnesium" },
+    { "index": 7,  "elementId": "Ca", "label": "Calcium"   },
+    { "index": 8,  "elementId": "Al", "label": "Aluminium" },
+    { "index": 9,  "elementId": "Fe", "label": "Iron"      },
+    { "index": 10, "elementId": "Cu", "label": "Copper"    },
+    { "index": 11, "elementId": "Zn", "label": "Zinc"      }
+  ]
+}

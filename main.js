@@ -6,6 +6,8 @@ import { state } from './core/state.js';
 import { bus, EVENTS } from './core/eventBus.js';
 import { nav } from './core/nav.js';
 import { trackerMock } from './core/trackerMock.js';
+import { arTransformMock } from './core/arTransformMock.js';
+import { bootstrapAR } from './core/arBootstrap.js';
 
 import { mountSplashScreen }        from './screens/splash.js';
 import { mountHomeScreen }          from './screens/home.js';
@@ -25,6 +27,7 @@ import { mountBottomNav }                 from './components/bottomNav.js';
 import { setupAudioBridge }                from './core/audioBridge.js';
 import { setupDemoMode }                   from './core/demoMode.js';
 import { setupCelebration }                from './components/celebration.js';
+import { setupCombineLogic }               from './core/combineLogic.js';
 
 (async () => {
   // ── Load all JSON data in parallel ──
@@ -38,8 +41,16 @@ import { setupCelebration }                from './components/celebration.js';
   const reactions = reactionsRaw.reactions;
   const invalidExplanations = reactionsRaw.invalidExplanations;
 
+  // ── Pick AR backend (real MindAR vs mock) ──
+  // Single decision point — see core/arBootstrap.js. Honours `?ar=1` / `?ar=0`
+  // URL override; otherwise auto-detects via HEAD-probe of cards.mind.
+  let { tracker, arTransform, mode: arMode } = await bootstrapAR({ bus, EVENTS });
+  console.info('[AR] mode =', arMode);
+
   const deps = {
-    tracker: trackerMock,
+    tracker,
+    arTransform,
+    arMode,
     state, bus, EVENTS,
     elements, compounds, reactions, molecules, invalidExplanations,
     mountMoleculeViewer
@@ -61,7 +72,7 @@ import { setupCelebration }                from './components/celebration.js';
 
   // ── Global systems ──
   mountToastSystem();
-  mountDevPanel({ tracker: trackerMock, state });
+  mountDevPanel({ tracker, state });
   mountBottomNav({ container: root, bus, EVENTS, nav });
 
   // Audio (procedural Web Audio — silent until first user gesture due to autoplay policy)
@@ -71,16 +82,42 @@ import { setupCelebration }                from './components/celebration.js';
   const celebrationBridge = setupCelebration({ bus, EVENTS, state, compounds });
 
   // Demo mode: ?demo=1 URL flag or `D` key triggers a presentation walkthrough
-  const demo = setupDemoMode({ bus, EVENTS, state, nav, tracker: trackerMock });
+  const demo = setupDemoMode({ bus, EVENTS, state, nav, tracker });
 
-  trackerMock.start();
+  // Proximity-bonding: two cards close in space → bond → compound.
+  const combineBridge = setupCombineLogic({ bus, EVENTS, state, reactions, compounds, tracker });
+
+  // Start the chosen tracker. Mock starts immediately (synchronous). Real is
+  // async (camera prompt + MindAR setup) — if it rejects (permission denied,
+  // file 404 mid-fetch, processVideo failure), fall back to the mock so the
+  // app remains usable.
+  try {
+    await tracker.start();
+  } catch (err) {
+    console.warn('[AR] real tracker start failed — falling back to mock', err);
+    bus.emit(EVENTS.TOAST, {
+      message: 'Camera/AR unavailable — using mock tracker.',
+      type: 'warn'
+    });
+    try { await tracker.stop?.(); } catch (_e) { /* best-effort cleanup */ }
+    tracker = trackerMock;
+    arTransform = arTransformMock;
+    arMode = 'mock';
+    deps.tracker = tracker;
+    deps.arTransform = arTransform;
+    deps.arMode = arMode;
+    trackerMock.start();
+  }
+
   state.bumpStreak();
 
   await nav.go('splash');
 
   // ── Console debugging surface ──
-  window.cr = { state, bus, EVENTS, nav, tracker: trackerMock, deps, showToast,
-                audio: audioBridge, demo, celebration: celebrationBridge };
+  window.cr = { state, bus, EVENTS, nav, tracker, arTransform, deps, showToast,
+                audio: audioBridge, demo, celebration: celebrationBridge,
+                combine: combineBridge,
+                get mode() { return deps.arMode; } };
 })();
 
 // ── Service worker registration ──

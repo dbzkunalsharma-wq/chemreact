@@ -38,7 +38,7 @@ export function mountLibraryScreen(container, deps) {
       <div class="lib-grid" data-grid></div>
     </div>
 
-    <div class="edet-back lib-back" data-act="back" style="position:absolute;top:calc(40px + var(--safe-t));left:20px;">
+    <div class="edet-back lib-back" data-act="back">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
     </div>
   `;
@@ -73,19 +73,21 @@ export function mountLibraryScreen(container, deps) {
     const items = getFiltered();
     countEl.textContent = `${items.length} / ${Object.keys(elements || {}).length}`;
     if (items.length === 0) {
-      grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:40px 20px;color:var(--muted);font-size:13px;">No elements match.</div>`;
+      grid.innerHTML = `<div class="lib-empty">No elements match.</div>`;
       return;
     }
     items.forEach(([id, el]) => {
       const cell = document.createElement('div');
       cell.className = 'lib-el';
-      cell.style.setProperty('--el-color', el.cpkColor || '#888');
+      // CPK colors are external chem data; fallback for missing values keeps
+      // the gradient ring readable. The CSS reads --el-color as well.
+      cell.style.setProperty('--el-color', el.cpkColor || 'var(--muted)');
       cell.innerHTML = `
         <div class="lib-el-top">
           <div class="lib-el-num">${el.z}</div>
           <div class="lib-el-mass">${(el.mass || 0).toFixed(2)}</div>
         </div>
-        <div class="lib-el-sym" style="color:${el.cpkColor || 'var(--text)'};">${id}</div>
+        <div class="lib-el-sym">${id}</div>
         <div class="lib-el-name">${el.name}</div>
       `;
       const handler = () => {

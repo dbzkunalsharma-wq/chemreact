@@ -6,10 +6,21 @@
 
 :root {
   /* Brand */
-  --teal:#0D7377; --teal2:#14BDBD; --teal3:#0A5255;
+  --teal:#0D7377; --teal2:#14BDBD; --teal3:#0A5255; --teal4:#08343A;
   --accent:#00E5CC; --accent2:#00B09B; --accent3:#0D7377;
-  --gold:#FFC857; --streak:#FF7A45;
+  --accent-bright:#14F0D8;   /* SVG-gradient stop variant — visual identity in splash + bottomNav */
+  --gold:#FFC857; --gold-deep:#FF9B3D; --streak:#FF7A45;
   --danger:#FF5C7A; --success:#2DD4BF; --warn:#FFB547;
+  --white:#FFFFFF;
+
+  /* Element-card pop colors (tinted-on-accent / dark-on-accent text) */
+  --on-accent:#052020;          /* dark teal text used on accent-filled buttons / chips */
+  --on-accent-2:#062024;        /* slightly cooler variant for hex avatar */
+  --on-accent-3:#042420;        /* deeper variant for toast / pill icons */
+  --on-accent-4:#042624;        /* used by .scan-combine accent text */
+  --on-success:#032A25;
+  --on-warn:#2A1C00;
+  --on-danger:#2A040A;
 
   /* Surfaces (dark base) */
   --dark:#080C14; --dark2:#0F1622; --dark3:#161E30; --dark4:#1C2538;

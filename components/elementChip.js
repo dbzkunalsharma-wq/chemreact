@@ -11,7 +11,8 @@ export function mountElementChip(container, { element, onClick }) {
 
   const render = () => {
     if (!el) return;
-    node.style.setProperty('--el-color', el.cpkColor || '#888');
+    // CPK colors come from external chem data; muted fallback when missing.
+    node.style.setProperty('--el-color', el.cpkColor || 'var(--muted)');
     node.innerHTML = `
       <div class="el-glow"></div>
       <div class="el-num">${el.z}</div>

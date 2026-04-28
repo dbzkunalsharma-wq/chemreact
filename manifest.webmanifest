@@ -1,18 +1,43 @@
 {
-  "name": "ChemReact - AR Chemistry",
+  "name": "ChemReact — AR Chemistry",
   "short_name": "ChemReact",
-  "description": "AR chemistry companion for the ChemReact board game",
-  "start_url": "./index.html",
+  "description": "Class 10/11 chemistry board game with AR molecule visualization. Scan element cards to discover compounds.",
+  "start_url": "./",
   "scope": "./",
+  "id": "/",
   "display": "standalone",
+  "display_override": ["standalone", "fullscreen"],
   "orientation": "portrait",
-  "background_color": "#080C14",
-  "theme_color": "#00E5CC",
-  "categories": ["education", "games"],
+  "background_color": "#02060a",
+  "theme_color": "#080C14",
+  "lang": "en",
+  "dir": "ltr",
+  "categories": ["education", "science", "games"],
   "icons": [
     { "src": "./assets/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
     { "src": "./assets/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
     { "src": "./assets/icons/maskable-icon.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
     { "src": "./assets/icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
-  ]
+  ],
+  "shortcuts": [
+    {
+      "name": "Scan a card",
+      "short_name": "Scan",
+      "description": "Open the AR scanner to identify an element card",
+      "url": "./?shortcut=scan",
+      "icons": [
+        { "src": "./assets/icons/icon-192.png", "sizes": "192x192", "type": "image/png" }
+      ]
+    },
+    {
+      "name": "Compound library",
+      "short_name": "Library",
+      "description": "Browse all discovered compounds",
+      "url": "./?shortcut=library",
+      "icons": [
+        { "src": "./assets/icons/icon-192.png", "sizes": "192x192", "type": "image/png" }
+      ]
+    }
+  ],
+  "prefer_related_applications": false
 }

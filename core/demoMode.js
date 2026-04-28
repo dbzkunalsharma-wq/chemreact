@@ -42,7 +42,7 @@ export function setupDemoMode({ bus, EVENTS, state, nav, tracker } = {}) {
       padding: '4px 10px',
       borderRadius: '999px',
       background: 'rgba(0,0,0,0.55)',
-      color: 'var(--accent, #4cd6ff)',
+      color: 'var(--accent, #00E5CC)',
       font: '600 11px/1 system-ui, sans-serif',
       letterSpacing: '0.12em',
       border: '1px solid rgba(255,255,255,0.12)',

@@ -73,7 +73,7 @@
   font-size: 90px;
   line-height: 1;
   display: inline-block;
-  background: linear-gradient(180deg, var(--gold, #ffd166) 0%, #ff9b3d 100%);
+  background: linear-gradient(180deg, var(--gold, #FFC857) 0%, var(--gold-deep, #FF9B3D) 100%);
   -webkit-background-clip: text;
           background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -98,7 +98,7 @@
 .lvl-title {
   font: 900 36px/1.05 system-ui, -apple-system, "Segoe UI", sans-serif;
   letter-spacing: 0.04em;
-  color: #fff;
+  color: var(--white);
   text-shadow:
     0 0 18px rgba(255, 209, 102, 0.55),
     0 0 36px rgba(76, 214, 255, 0.35),
@@ -122,7 +122,7 @@
   );
 }
 .lvl-overlay.lvl-discovery .lvl-icon {
-  background: linear-gradient(180deg, var(--teal, #2bd9c4) 0%, var(--accent, #4cd6ff) 100%);
+  background: linear-gradient(180deg, var(--teal, #0D7377) 0%, var(--accent, #00E5CC) 100%);
   -webkit-background-clip: text;
           background-clip: text;
   -webkit-text-fill-color: transparent;

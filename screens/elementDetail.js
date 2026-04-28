@@ -8,8 +8,8 @@ export function mountElementDetailScreen(container, deps) {
 
   if (!el) {
     container.innerHTML = `
-      <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:var(--muted);gap:12px;">
-        <div style="font-size:48px;">⚛️</div>
+      <div class="edet-missing">
+        <div class="edet-missing-emoji">⚛️</div>
         <div>Element not found.</div>
         <button class="filter-tab" data-act="back">Back</button>
       </div>`;
@@ -41,7 +41,7 @@ export function mountElementDetailScreen(container, deps) {
     </div>
 
     <div class="edet-hero">
-      <div class="edet-card" style="--ecol:${el.cpkColor || '#0D7377'};">
+      <div class="edet-card" style="--ecol:${el.cpkColor || 'var(--teal)'};">
         <div class="edet-card-top">
           <div class="edet-no">No. ${el.z}</div>
           <div class="edet-grp">${(el.category || 'element').toUpperCase()}</div>
@@ -75,15 +75,15 @@ export function mountElementDetailScreen(container, deps) {
 
         <div class="edet-box">
           <div class="edet-box-t">USES</div>
-          <ul style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:6px;">
-            ${(el.uses || []).map(u => `<li style="font-size:13px;color:var(--text2);display:flex;gap:8px;align-items:flex-start;"><span style="color:var(--accent);">•</span><span>${u}</span></li>`).join('') || '<li style="color:var(--muted);font-size:12px;">—</li>'}
+          <ul class="edet-uses">
+            ${(el.uses || []).map(u => `<li><span class="edet-uses-dot">•</span><span>${u}</span></li>`).join('') || '<li class="edet-uses-empty">—</li>'}
           </ul>
         </div>
 
         <div class="edet-box">
           <div class="edet-box-t">REACTIONS</div>
           <div class="edet-reactions" data-rx-list>
-            ${involvingReactions.length === 0 ? '<div style="color:var(--muted);font-size:12px;">No reactions in this dataset.</div>' : ''}
+            ${involvingReactions.length === 0 ? '<div class="edet-rx-empty">No reactions in this dataset.</div>' : ''}
           </div>
         </div>
       </div>
@@ -98,12 +98,12 @@ export function mountElementDetailScreen(container, deps) {
     const row = document.createElement('div');
     row.className = 'edet-rx';
     row.innerHTML = `
-      <div class="edet-rx-ico" style="background:linear-gradient(135deg,var(--teal),var(--accent));color:white;">⚗️</div>
+      <div class="edet-rx-ico">⚗️</div>
       <div class="edet-rx-txt">
         <div class="edet-rx-f">${compound?.formula || r.product}</div>
         <div class="edet-rx-n">${compound?.name || r.product} · ${r.balanced}</div>
       </div>
-      <div style="color:var(--muted);font-size:18px;">›</div>
+      <div class="edet-rx-chev">›</div>
     `;
     const handler = () => {
       state.set({ lastReaction: r.product });
