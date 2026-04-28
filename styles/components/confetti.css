@@ -1,0 +1,8 @@
+/* confetti.css — overlay positioning for the canvas particle system */
+
+.confetti-canvas {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+}

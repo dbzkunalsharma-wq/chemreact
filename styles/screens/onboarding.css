@@ -1,0 +1,200 @@
+/* onboarding.css — first-run onboarding screen.
+ * SAFE TO REPLACE: only scopes inside #screen-onboarding + .ob-* classnames.
+ */
+
+#screen-onboarding {
+  background: var(--dark);
+  justify-content: space-between;
+  align-items: stretch;
+  padding: calc(20px + var(--safe-t)) 24px calc(28px + var(--safe-b));
+  color: var(--text);
+}
+
+#screen-onboarding .ob-bg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 50% 30%, rgba(0, 229, 204, 0.16) 0%, transparent 55%),
+    radial-gradient(circle at 85% 85%, rgba(13, 115, 119, 0.18) 0%, transparent 50%),
+    radial-gradient(circle at 10% 80%, rgba(142, 68, 173, 0.10) 0%, transparent 50%);
+  z-index: 0;
+}
+
+/* ── TOP — Skip ── */
+#screen-onboarding .ob-top {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 4px;
+}
+#screen-onboarding .ob-skip {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  color: var(--muted);
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: transparent;
+  transition: color 0.18s var(--ease-out), background 0.18s var(--ease-out);
+}
+#screen-onboarding .ob-skip:hover { color: var(--text2); background: rgba(255, 255, 255, 0.04); }
+#screen-onboarding .ob-skip:active { transform: scale(0.96); }
+
+/* ── STAGE — hero + copy ── */
+#screen-onboarding .ob-stage {
+  position: relative;
+  z-index: 2;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 36px;
+  padding: 0 8px;
+}
+
+#screen-onboarding .ob-hero {
+  position: relative;
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--teal) 0%, var(--accent) 100%);
+  box-shadow:
+    0 24px 60px rgba(0, 229, 204, 0.32),
+    0 6px 20px rgba(13, 115, 119, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22);
+}
+#screen-onboarding .ob-hero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.18), transparent 55%);
+  pointer-events: none;
+}
+#screen-onboarding .ob-hero-glow {
+  position: absolute;
+  inset: -28px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 50%, rgba(0, 229, 204, 0.30) 0%, transparent 65%);
+  filter: blur(8px);
+  z-index: -1;
+  animation: obGlowPulse 3.4s ease-in-out infinite;
+}
+#screen-onboarding .ob-hero-emoji {
+  font-size: 64px;
+  line-height: 1;
+  position: relative;
+  z-index: 1;
+  filter: drop-shadow(0 4px 14px rgba(0, 0, 0, 0.35));
+}
+#screen-onboarding .ob-hero-pop {
+  animation: obHeroPop 0.55s var(--ease-spring) both;
+}
+
+#screen-onboarding .ob-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  max-width: 320px;
+  animation: obCopyIn 0.45s var(--ease-out) both;
+}
+#screen-onboarding .ob-heading-host .hd {
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: -0.6px;
+  line-height: 1.15;
+  color: var(--text);
+  text-align: center;
+}
+#screen-onboarding .ob-body-host .txt {
+  display: block;
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--text2);
+  text-align: center;
+  font-weight: 400;
+}
+
+/* ── FOOT — dots + actions ── */
+#screen-onboarding .ob-foot {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 22px;
+  padding-top: 12px;
+}
+
+#screen-onboarding .ob-dots {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+#screen-onboarding .ob-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.18);
+  transition:
+    width 0.28s var(--ease-spring),
+    background 0.22s var(--ease-out),
+    box-shadow 0.22s var(--ease-out);
+  cursor: pointer;
+}
+#screen-onboarding .ob-dot.active {
+  width: 22px;
+  background: var(--accent);
+  box-shadow: 0 0 10px rgba(0, 229, 204, 0.5);
+}
+
+#screen-onboarding .ob-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+#screen-onboarding .ob-back {
+  flex: 0 0 auto;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--muted);
+  padding: 14px 18px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--line);
+  transition: background 0.18s var(--ease-out), color 0.18s var(--ease-out), transform 0.12s var(--ease-out);
+}
+#screen-onboarding .ob-back:hover { background: rgba(255, 255, 255, 0.07); color: var(--text2); }
+#screen-onboarding .ob-back:active { transform: scale(0.97); }
+
+#screen-onboarding .ob-next-host {
+  flex: 1;
+  display: flex;
+}
+#screen-onboarding .ob-next-host .btn {
+  flex: 1;
+}
+
+/* ── KEYFRAMES ── */
+@keyframes obHeroPop {
+  0%   { transform: scale(0.6) rotate(-8deg); opacity: 0; }
+  60%  { transform: scale(1.1) rotate(2deg);  opacity: 1; }
+  100% { transform: scale(1)   rotate(0);     opacity: 1; }
+}
+@keyframes obCopyIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes obGlowPulse {
+  0%, 100% { opacity: 0.7; transform: scale(1); }
+  50%      { opacity: 1;   transform: scale(1.08); }
+}

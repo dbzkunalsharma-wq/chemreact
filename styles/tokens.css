@@ -1,0 +1,48 @@
+/* tokens.css — design tokens (single source of truth for color, type, motion). */
+
+/* Premium grotesque font (free, Söhne-adjacent). Geist by Vercel.
+ * Falls back to Inter, then system. */
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800;900&family=Inter:wght@400;500;600;700;800&display=swap');
+
+:root {
+  /* Brand */
+  --teal:#0D7377; --teal2:#14BDBD; --teal3:#0A5255;
+  --accent:#00E5CC; --accent2:#00B09B; --accent3:#0D7377;
+  --gold:#FFC857; --streak:#FF7A45;
+  --danger:#FF5C7A; --success:#2DD4BF; --warn:#FFB547;
+
+  /* Surfaces (dark base) */
+  --dark:#080C14; --dark2:#0F1622; --dark3:#161E30; --dark4:#1C2538;
+  --card:#111827; --card2:#151D2E;
+  --line:rgba(255,255,255,0.06);
+
+  /* Glass surface tokens — used by .card-default + new glass primitives */
+  --glass-bg:        rgba(255, 255, 255, 0.04);
+  --glass-bg-strong: rgba(255, 255, 255, 0.08);
+  --glass-border:    rgba(255, 255, 255, 0.10);
+  --glass-blur:      24px;
+  --glass-shadow:    0 12px 36px rgba(0, 0, 0, 0.45),
+                     inset 0 1px 0 rgba(255, 255, 255, 0.08),
+                     inset 0 -1px 0 rgba(0, 0, 0, 0.20);
+
+  /* Text */
+  --text:#F0F4FF; --text2:#C9D3E5; --muted:#8E9BAF; --muted2:#5F6B7E;
+
+  /* Safe areas */
+  --safe-t:env(safe-area-inset-top,0px);
+  --safe-b:env(safe-area-inset-bottom,0px);
+
+  /* Motion */
+  --ease-out:cubic-bezier(0.22,1,0.36,1);
+  --ease-spring:cubic-bezier(0.34,1.56,0.64,1);
+
+  /* Type */
+  --font-stack: 'Geist', 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
+}
+
+html, body {
+  font-family: var(--font-stack);
+  font-feature-settings: "ss01", "cv11", "cv02";
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}

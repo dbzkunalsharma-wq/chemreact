@@ -1,0 +1,32 @@
+/* _template.css — copy this when adding a NEW screen from Figma.
+ *
+ * STEPS to add a Figma-designed screen:
+ *  1. Copy this file → styles/screens/<name>.css
+ *  2. Add `<link rel="stylesheet" href="./styles/screens/<name>.css">` to index.html
+ *     (or update screens.css barrel @import).
+ *  3. Replace `__SCREEN_NAME__` below with your screen id (e.g. `bossfight`).
+ *  4. Use only classes prefixed with your screen name (e.g. `.bossfight-hero`)
+ *     OR utility classes from figma.css (e.g. `.f-col`, `.f-r-16`).
+ *  5. Reference design tokens (`var(--accent)`, `var(--card)`, etc) — never hardcode colors.
+ *  6. Create matching `screens/<name>.js` exporting `mountSCREEN_NAMEScreen(container, deps)`.
+ *  7. Register in main.js: `nav.register('<name>', mount__SCREEN_NAME__Screen)`.
+ *
+ * RULES this file enforces:
+ *  - All rules must be scoped under #screen-__SCREEN_NAME__ to prevent leakage.
+ *  - No global selectors (avoid `body`, `html`, `*`, generic tag selectors).
+ *  - All colors via CSS variables from tokens.css.
+ *  - All eases via var(--ease-out) / var(--ease-spring).
+ */
+
+#screen-__SCREEN_NAME__ {
+  background: var(--dark);
+  /* your layout here */
+}
+
+/* example block — rename to match your Figma layer names */
+.__SCREEN_NAME__-hero {
+  padding: 20px;
+  border-radius: 16px;
+  background: var(--card);
+  border: 1px solid var(--line);
+}

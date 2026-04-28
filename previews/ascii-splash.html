@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ChemReact ASCII Splash</title>
+<style>
+  html,body { margin:0; height:100%; overflow:hidden; background:#02060a;
+              font-family: ui-monospace, "JetBrains Mono", Consolas, monospace; color:#dffaf3; }
+  /* ASCII bg gets a tiny blur — keeps texture legible from distance, makes
+     foreground chrome (logo + button) read cleanly. App name is priority. */
+  canvas    { display:block; width:100vw; height:100vh; filter: blur(1.4px); }
+
+  /* Soft radial darken behind the title — pulls the bg back so text pops
+     without killing the ascii effect. Sits between canvas and chrome. */
+  .splash-mask { position:fixed; inset:0; z-index:1; pointer-events:none;
+                 background: radial-gradient(ellipse 40% 30% at 50% 48%,
+                                              rgba(2,6,10,0.78) 0%,
+                                              rgba(2,6,10,0.55) 35%,
+                                              rgba(2,6,10,0) 75%); }
+
+  /* Splash chrome — mark + name + button stack, centered. */
+  .splash-ui   { position:fixed; inset:0; z-index:5; display:flex; flex-direction:column;
+                 align-items:center; justify-content:center; gap:14px;
+                 pointer-events:none; padding:0 32px; text-align:center; }
+  .splash-mark { width:64px; height:64px; opacity:0.95;
+                 filter:drop-shadow(0 0 24px rgba(0,229,204,0.6)); }
+  .splash-name { margin:4px 0 0; font-size:48px; font-weight:600; letter-spacing:0.5px;
+                 line-height:1; color:#eaf9f4;
+                 text-shadow:0 2px 32px rgba(0,229,204,0.55), 0 0 10px rgba(0,229,204,0.25); }
+  .splash-name span { background:linear-gradient(120deg,#14F0D8 0%,#00B09B 100%);
+                      -webkit-background-clip:text; background-clip:text; color:transparent; }
+  .splash-tag  { margin:0; font-size:11px; opacity:0.72; color:#9fe9dc;
+                 letter-spacing:2.4px; text-transform:uppercase; }
+  /* Play button: cyan halo + slow pulse so it reads as the call-to-action
+     even under the busy ASCII bg. The "→" is a reaction arrow, on-theme. */
+  .splash-play { position:relative; pointer-events:auto; margin-top:22px;
+                 padding:10px 24px; border-radius:24px;
+                 background:rgba(8,30,38,0.55); border:1px solid rgba(0,229,204,0.55);
+                 backdrop-filter:blur(8px) saturate(140%);
+                 -webkit-backdrop-filter:blur(8px) saturate(140%);
+                 color:#eaf9f4; font:12px/1 ui-monospace,monospace; letter-spacing:1.2px;
+                 cursor:pointer;
+                 box-shadow:
+                   0 8px 22px rgba(0,0,0,0.5),
+                   inset 0 1px 0 rgba(255,255,255,0.08),
+                   0 0 22px rgba(0,229,204,0.28);
+                 transition: transform .18s ease, box-shadow .18s ease, background .18s ease;
+                 animation: btnPulse 3.4s ease-in-out infinite; }
+  .splash-play:hover  { background:rgba(12,50,60,0.72); transform:translateY(-2px); }
+  .splash-play:active { transform:translateY(0) scale(0.97); }
+  @keyframes btnPulse {
+    0%, 100% { box-shadow: 0 12px 32px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.08), 0 0 22px rgba(0,229,204,0.22); }
+    50%      { box-shadow: 0 12px 32px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.08), 0 0 38px rgba(0,229,204,0.45); }
+  }
+  .splash-credit { position:fixed; left:0; right:0; bottom:18px; z-index:5;
+                   text-align:center; font-size:10px; letter-spacing:1.5px;
+                   color:rgba(159,233,220,0.45); pointer-events:none; }
+
+  .toolbar  { position:fixed; top:12px; left:12px; z-index:10; display:flex; gap:6px;
+              font:12px/1.2 ui-monospace,Consolas,monospace; color:#9fe9dc; }
+  .toolbar button { background:rgba(0,40,50,0.55); color:#9fe9dc; border:1px solid #1d5a5a;
+                    padding:6px 10px; border-radius:6px; cursor:pointer; font-family:inherit; }
+  .toolbar button.on { background:#1d5a5a; color:#dffaf3; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div class="splash-mask"></div>
+
+<div class="splash-ui">
+  <!-- Atom mark — same goo metaball style as the project's logo. -->
+  <svg class="splash-mark" viewBox="0 0 64 64" aria-hidden="true">
+    <defs>
+      <filter id="sp-goo" x="-20%" y="-20%" width="140%" height="140%">
+        <feGaussianBlur in="SourceGraphic" stdDeviation="1.3" result="b"/>
+        <feColorMatrix in="b" mode="matrix"
+          values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 22 -10" result="g"/>
+        <feComposite in="SourceGraphic" in2="g" operator="atop"/>
+      </filter>
+      <linearGradient id="sp-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%"  stop-color="#14F0D8"/>
+        <stop offset="100%" stop-color="#00B09B"/>
+      </linearGradient>
+    </defs>
+    <g filter="url(#sp-goo)" fill="url(#sp-grad)">
+      <circle cx="32" cy="32" r="9.5"/>
+      <circle cx="32" cy="13" r="5.2"/>
+      <circle cx="32" cy="51" r="5.2"/>
+      <circle cx="14" cy="22" r="4.8"/>
+      <circle cx="50" cy="22" r="4.8"/>
+      <circle cx="14" cy="42" r="4.8"/>
+      <circle cx="50" cy="42" r="4.8"/>
+    </g>
+  </svg>
+  <h1 class="splash-name">Chem<span>React</span></h1>
+  <p class="splash-tag">AR Chemistry · Class 10/11</p>
+  <button class="splash-play" type="button">→ Let's React</button>
+</div>
+<div class="splash-credit">v0.5 · IIT Delhi · Kunal</div>
+
+<div class="toolbar" id="toolbar"></div>
+<script>
+// ───── CONFIG ──────────────────────────────────────────────────────────
+const CONFIG = {
+  symbolDensity:  0.72,
+  animationSpeed: 1,
+  palette:        'cyan',       // 'cyan' | 'amber'
+  sourceImage:    'atom',       // 'benzene' | 'atom' | 'flask' | 'dna'
+  cols:           62,
+  swapInterval:   1100,         // ms — average swap interval per cell
+  pulseCycle:     5400,         // ms — pulse wave period from atom center
+  vignette:       0.92          // 0..1 — corner darkening strength
+};
+
+const ELEMENTS = ['H','O','C','N','Na','Fe','Cu','Ag','Au','K','Cl','Mg','Ca','Zn','S','P','Li','Br','Si','Al','Mn','Co','Ni','Pb','Sn'];
+const FORMULAS = ['H₂O','CO₂','NH₃','CH₄','NaCl','O₂','HCl','H₂','N₂','SO₂','HNO₃','H₂SO₄','C₆H₆','NaOH','KCl','MgO','CaO','FeO'];
+
+const PALETTES = {
+  cyan:  { bg:'#02060a', shadow:[2,6,10],   dim:[60,170,180],  mid:[120,235,220], bright:[230,255,250] },
+  amber: { bg:'#0a0602', shadow:[10,6,2],   dim:[160,110,70],  mid:[240,180,100], bright:[255,235,190] }
+};
+
+// ───── Source-image generators ─────────────────────────────────────────
+const SOURCES = {
+  benzene(x,w,h) {
+    const cx=w/2, cy=h/2, r=Math.min(w,h)*0.34;
+    x.strokeStyle='#fff'; x.fillStyle='#fff'; x.lineWidth=w*0.025;
+    const v=[]; for(let i=0;i<6;i++){const a=-Math.PI/2+i*Math.PI/3; v.push([cx+Math.cos(a)*r, cy+Math.sin(a)*r]);}
+    x.beginPath(); v.forEach(([px,py],i)=> i?x.lineTo(px,py):x.moveTo(px,py)); x.closePath(); x.stroke();
+    for(let i=0;i<6;i+=2){
+      const [a1,b1]=v[i], [a2,b2]=v[(i+1)%6];
+      x.beginPath();
+      x.moveTo(cx+(a1-cx)*0.78, cy+(b1-cy)*0.78);
+      x.lineTo(cx+(a2-cx)*0.78, cy+(b2-cy)*0.78);
+      x.stroke();
+    }
+    v.forEach(([px,py])=>{ x.beginPath(); x.arc(px,py,w*0.022,0,Math.PI*2); x.fill(); });
+  },
+  atom(x,w,h) {
+    const cx=w/2, cy=h/2;
+    const Rorb = Math.min(w,h)*0.42;
+    const rNuc = Math.min(w,h)*0.085;
+    x.strokeStyle='#fff'; x.fillStyle='#fff';
+    x.beginPath(); x.arc(cx,cy,rNuc*1.6,0,Math.PI*2); x.globalAlpha=0.35; x.fill(); x.globalAlpha=1;
+    x.beginPath(); x.arc(cx,cy,rNuc,0,Math.PI*2);     x.fill();
+    x.lineWidth = w*0.011;
+    for(let i=0;i<3;i++){
+      x.save(); x.translate(cx,cy); x.rotate(i*Math.PI/3);
+      x.beginPath(); x.ellipse(0,0,Rorb,Rorb*0.34,0,0,Math.PI*2); x.stroke();
+      x.restore();
+    }
+    for(let i=0;i<3;i++){
+      const baseRot = i*Math.PI/3;
+      for(const t of [0, Math.PI*2/3, Math.PI*4/3]){
+        x.save(); x.translate(cx,cy); x.rotate(baseRot);
+        x.beginPath(); x.arc(Math.cos(t)*Rorb, Math.sin(t)*Rorb*0.34, w*0.022, 0, Math.PI*2); x.fill();
+        x.restore();
+      }
+    }
+  },
+  flask(x,w,h) {
+    const cx=w/2, cy=h*0.55, fw=w*0.5, fh=h*0.55, nw=w*0.13, nh=h*0.18;
+    x.strokeStyle='#fff'; x.lineWidth=w*0.014;
+    x.beginPath();
+    x.moveTo(cx-nw/2, cy-fh/2-nh); x.lineTo(cx-nw/2, cy-fh/2);
+    x.lineTo(cx-fw/2, cy+fh/2);    x.lineTo(cx+fw/2, cy+fh/2);
+    x.lineTo(cx+nw/2, cy-fh/2);    x.lineTo(cx+nw/2, cy-fh/2-nh);
+    x.stroke();
+    const liqY = cy + fh*0.1;
+    const sl = (-(fw-nw)/2) / fh;
+    const lx = cx - nw/2 + sl*(liqY - (cy-fh/2));
+    const rx = cx + nw/2 - sl*(liqY - (cy-fh/2));
+    x.fillStyle='rgba(255,255,255,0.7)';
+    x.beginPath(); x.moveTo(lx,liqY); x.lineTo(rx,liqY); x.lineTo(cx+fw/2,cy+fh/2); x.lineTo(cx-fw/2,cy+fh/2); x.closePath(); x.fill();
+    x.fillStyle='#fff';
+    for(let i=0;i<6;i++){ const bx=cx+Math.sin(i*1.7)*fw*0.3, by=cy+(i%3)*fh*0.1; x.beginPath(); x.arc(bx,by,w*0.014,0,Math.PI*2); x.fill(); }
+  },
+  dna(x,w,h) {
+    const cx=w/2, amp=w*0.18, wl=h*0.32, y0=h*0.08, y1=h*0.92;
+    x.strokeStyle='#fff'; x.lineWidth=w*0.014;
+    for(const ph of [0,Math.PI]){
+      x.beginPath();
+      for(let y=y0;y<=y1;y+=1.5){
+        const px = cx + Math.sin((y-y0)/wl*Math.PI*2 + ph) * amp;
+        if(y===y0) x.moveTo(px,y); else x.lineTo(px,y);
+      }
+      x.stroke();
+    }
+    x.lineWidth=w*0.007;
+    for(let y=y0;y<=y1;y+=wl*0.16){
+      const ph=(y-y0)/wl*Math.PI*2;
+      x.beginPath();
+      x.moveTo(cx+Math.sin(ph)*amp, y);
+      x.lineTo(cx+Math.sin(ph+Math.PI)*amp, y);
+      x.stroke();
+    }
+  }
+};
+
+function buildSource(kind, gw, gh) {
+  const scale = 4, w = gw*scale, h = gh*scale;
+  const c = document.createElement('canvas'); c.width=w; c.height=h;
+  const x = c.getContext('2d');
+  x.fillStyle='#000'; x.fillRect(0,0,w,h);
+  (SOURCES[kind] || SOURCES.atom)(x, w, h);
+  const data = x.getImageData(0,0,w,h).data;
+  const lum = new Float32Array(gw*gh);
+  for(let gy=0; gy<gh; gy++) for(let gx=0; gx<gw; gx++){
+    let s=0;
+    for(let dy=0; dy<scale; dy++) for(let dx=0; dx<scale; dx++){
+      const i = ((gy*scale+dy)*w + gx*scale+dx) * 4;
+      s += 0.299*data[i] + 0.587*data[i+1] + 0.114*data[i+2];
+    }
+    lum[gy*gw+gx] = s / (scale*scale*255);
+  }
+  return lum;
+}
+
+// ───── Render state ────────────────────────────────────────────────────
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+let cellW, cellH, cols, rows, lum;
+let cells = [];
+let vignetteGrad = null;
+let centerX = 0, centerY = 0, maxRad = 0;
+
+function lerp(a, b, t) { return [a[0]+(b[0]-a[0])*t, a[1]+(b[1]-a[1])*t, a[2]+(b[2]-a[2])*t]; }
+function rampColor(L, pal) {
+  if (L < 0.4) return lerp(pal.dim, pal.mid, L / 0.4);
+  return lerp(pal.mid, pal.bright, (L - 0.4) / 0.6);
+}
+function pickSym(L) {
+  if (L < 0.04) return Math.random() < CONFIG.symbolDensity * 0.14 ? '·' : null;
+  if (L < 0.18) return Math.random() < CONFIG.symbolDensity * 0.55 ? ELEMENTS[Math.random()*ELEMENTS.length|0] : null;
+  if (L > 0.55) return FORMULAS[Math.random()*FORMULAS.length|0];
+  return ELEMENTS[Math.random()*ELEMENTS.length|0];
+}
+
+function buildCells() {
+  cells = new Array(rows);
+  for(let y=0; y<rows; y++){
+    const row = new Array(cols);
+    for(let x=0; x<cols; x++){
+      const L = lum[y*cols+x];
+      row[x] = {
+        sym:     pickSym(L),
+        lum:     L,
+        swapAt:  Math.random() * CONFIG.swapInterval * 1.5,
+        twinkle: Math.random() * Math.PI * 2,
+        px: 0, py: 0, dist: 0
+      };
+    }
+    cells[y] = row;
+  }
+  // Off-center atom for compositional tension — eye doesn't sit dead-center.
+  // Chrome stays centered (CSS) so the slight mis-alignment creates depth.
+  centerX = innerWidth  * 0.55;
+  centerY = innerHeight * 0.42;
+  maxRad  = Math.hypot(Math.max(centerX, innerWidth - centerX),
+                       Math.max(centerY, innerHeight - centerY));
+  for(let y=0; y<rows; y++) for(let x=0; x<cols; x++){
+    const c = cells[y][x];
+    c.px = (x + 0.5) * cellW;
+    c.py = (y + 0.5) * cellH;
+    c.dist = Math.hypot(c.px - centerX, c.py - centerY);
+  }
+}
+
+function buildVignette(pal) {
+  const g = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, maxRad);
+  g.addColorStop(0,    `rgba(${pal.shadow[0]},${pal.shadow[1]},${pal.shadow[2]},0)`);
+  g.addColorStop(0.45, `rgba(${pal.shadow[0]},${pal.shadow[1]},${pal.shadow[2]},0)`);
+  g.addColorStop(1,    `rgba(${pal.shadow[0]},${pal.shadow[1]},${pal.shadow[2]},${CONFIG.vignette})`);
+  vignetteGrad = g;
+}
+
+function resize() {
+  const dpr = Math.min(2, devicePixelRatio || 1);
+  canvas.width  = innerWidth  * dpr;
+  canvas.height = innerHeight * dpr;
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  cols  = CONFIG.cols;
+  cellW = innerWidth / cols;
+  cellH = cellW * 1.55;
+  rows  = Math.ceil(innerHeight / cellH) + 1;
+  lum   = buildSource(CONFIG.sourceImage, cols, rows);
+  buildCells();
+  buildVignette(PALETTES[CONFIG.palette]);
+}
+
+let last = performance.now();
+let pulseT = 0;
+function frame(now) {
+  const dt = Math.min(60, now - last);
+  last = now;
+  const speed = CONFIG.animationSpeed;
+  const pal   = PALETTES[CONFIG.palette];
+
+  pulseT = (pulseT + dt / CONFIG.pulseCycle) % 1;
+  const pulseActive = pulseT < 0.6 ? pulseT / 0.6 : 0;
+  const pulseR      = pulseActive * (maxRad + 60);
+  const pulseFade   = pulseActive > 0 ? (1 - pulseT/0.6) : 0;
+
+  ctx.fillStyle = pal.bg;
+  ctx.fillRect(0, 0, innerWidth, innerHeight);
+  ctx.font = `${(cellH*0.62)|0}px ui-monospace, "JetBrains Mono", "IBM Plex Mono", "Fira Code", Consolas, monospace`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+
+  for(let y=0; y<rows; y++){
+    const row = cells[y];
+    for(let x=0; x<cols; x++){
+      const c = row[x];
+      c.swapAt  -= dt * speed;
+      c.twinkle += dt * 0.0035 * speed;
+
+      if (c.swapAt <= 0) {
+        c.sym = pickSym(c.lum);
+        c.swapAt = CONFIG.swapInterval * (0.4 + Math.random()*1.3);
+      }
+      if (!c.sym) continue;
+
+      let alpha = 0.10 + c.lum * 0.85;
+      alpha += (Math.sin(c.twinkle*6) * 0.5 + 0.5) * 0.32 * (0.5 + c.lum * 0.5);
+      if (pulseActive > 0) {
+        const pd = Math.abs(c.dist - pulseR);
+        if (pd < 38) alpha += (1 - pd / 38) * 0.45 * pulseFade * (0.4 + c.lum * 0.6);
+      }
+      alpha = Math.min(1, Math.max(0, alpha));
+
+      const rgb = rampColor(c.lum, pal);
+      ctx.fillStyle = `rgba(${rgb[0]|0},${rgb[1]|0},${rgb[2]|0},${alpha.toFixed(3)})`;
+      ctx.fillText(c.sym, c.px, c.py);
+    }
+  }
+
+  // Nuclear spark — warm bright core at atom center. Adds depth + a hint of
+  // chemical reactivity (cyan everything else, this one warm note pops).
+  // Pulses subtly with the same cycle as the wave, so they feel coupled.
+  const sparkPulse = 0.75 + Math.sin(pulseT * Math.PI * 2) * 0.25;
+  const sparkR     = Math.min(innerWidth, innerHeight) * 0.16;
+  const sg = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, sparkR);
+  sg.addColorStop(0,    `rgba(255, 232, 180, ${(0.55 * sparkPulse).toFixed(3)})`);
+  sg.addColorStop(0.25, `rgba(180, 240, 220, ${(0.30 * sparkPulse).toFixed(3)})`);
+  sg.addColorStop(0.6,  `rgba(40, 100, 110, ${(0.10 * sparkPulse).toFixed(3)})`);
+  sg.addColorStop(1,    'rgba(0, 0, 0, 0)');
+  ctx.fillStyle = sg;
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.fillRect(0, 0, innerWidth, innerHeight);
+  ctx.globalCompositeOperation = 'source-over';
+
+  if (vignetteGrad) {
+    ctx.fillStyle = vignetteGrad;
+    ctx.fillRect(0, 0, innerWidth, innerHeight);
+  }
+
+  requestAnimationFrame(frame);
+}
+
+// ───── Toolbar ──────────────────────────────────────────────────────────
+function buildToolbar() {
+  const tb = document.getElementById('toolbar');
+  tb.innerHTML = '';
+  const mk = (label, onClick, isOn) => {
+    const b = document.createElement('button');
+    b.textContent = label; b.onclick = onClick;
+    if (isOn) b.classList.add('on');
+    tb.appendChild(b);
+    return b;
+  };
+  ['benzene','atom','flask','dna'].forEach(k => mk(k, () => { CONFIG.sourceImage = k; resize(); buildToolbar(); }, CONFIG.sourceImage === k));
+  const sep = mk('|', ()=>{}, false); sep.disabled = true; sep.style.opacity = 0.4;
+  ['cyan','amber'].forEach(k => mk(k, () => { CONFIG.palette = k; buildVignette(PALETTES[k]); buildToolbar(); }, CONFIG.palette === k));
+}
+
+resize();
+buildToolbar();
+addEventListener('resize', resize);
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

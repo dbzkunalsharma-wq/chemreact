@@ -1,0 +1,209 @@
+/* splash.css — ASCII chemistry-symbol atom hero.
+ *
+ * Stack (z-index, bottom to top):
+ *   0  bg canvas (chemAsciiBg) — symbol-art atom shape, vignette, spark
+ *   1  splash-mask — radial dim behind the chrome so text reads
+ *   2  splash-logo-block (mark + name + tag) + splash-play-wrap + credit
+ *
+ * SAFE TO REPLACE: only scopes inside #screen-splash + .splash-* + .btn.splash-play-btn.
+ */
+
+#screen-splash {
+  background: #02060a;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+}
+
+.splash-screen {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+/* ── BG host: hosts the chemAsciiBg <canvas>. Tiny blur lets the chrome win. */
+.splash-bloom-host {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+.splash-bloom-host > canvas {
+  /* App name + button are priority — soften the bg enough to read clearly. */
+  filter: blur(1.2px);
+}
+
+/* ── Soft radial dim behind the chrome stack. Center darkens, edges keep
+   the ascii texture. Sits between bg and chrome. */
+.splash-mask {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: radial-gradient(ellipse 50% 32% at 50% 48%,
+                              rgba(2, 6, 10, 0.78) 0%,
+                              rgba(2, 6, 10, 0.55) 35%,
+                              rgba(2, 6, 10, 0)    75%);
+}
+
+/* ── Centered chrome stack ── */
+.splash-logo-block {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 0 32px;
+  margin-bottom: 60px;
+  text-align: center;
+  animation: splashFadeUp 0.9s var(--ease-spring) both;
+}
+
+.splash-mark {
+  width: 64px;
+  height: 64px;
+  position: relative;
+  filter: drop-shadow(0 0 24px rgba(0, 229, 204, 0.6));
+}
+.splash-mark-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.splash-mark::after {
+  content: '';
+  position: absolute;
+  inset: -25%;
+  background: radial-gradient(circle at 50% 50%,
+    rgba(0, 229, 204, 0.22) 0%,
+    rgba(13, 115, 119, 0.10) 45%,
+    transparent 80%);
+  filter: blur(20px);
+  pointer-events: none;
+  z-index: -1;
+  animation: splashMarkBreath 6s ease-in-out infinite;
+}
+
+.splash-name {
+  margin: 4px 0 0;
+  font-size: 48px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  line-height: 1;
+  color: #eaf9f4;
+  text-shadow:
+    0 2px 32px rgba(0, 229, 204, 0.55),
+    0 0   10px rgba(0, 229, 204, 0.25);
+}
+.splash-name span {
+  background: linear-gradient(120deg, #14F0D8 0%, #00B09B 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.splash-tag {
+  font-size: 11px;
+  letter-spacing: 2.4px;
+  text-transform: uppercase;
+  color: #9fe9dc;
+  opacity: 0.72;
+  font-weight: 500;
+  margin: 0;
+}
+
+/* ── Glass PLAY button — small CTA, cyan halo, slow pulse ── */
+.splash-play-wrap {
+  position: relative;
+  z-index: 2;
+  margin-top: 8px;
+  animation: splashFadeUp 1.2s 0.3s var(--ease-spring) both;
+}
+
+/* Override the primitive ghost styling — small, glassy, cyan halo. */
+.btn.splash-play-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 24px;
+  border-radius: 24px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 1.2px;
+  text-transform: none;
+  background: rgba(8, 30, 38, 0.55);
+  backdrop-filter: blur(8px) saturate(140%);
+  -webkit-backdrop-filter: blur(8px) saturate(140%);
+  border: 1px solid rgba(0, 229, 204, 0.55);
+  color: #eaf9f4;
+  box-shadow:
+    0 8px 22px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 0 22px rgba(0, 229, 204, 0.28);
+  transition:
+    transform 0.18s var(--ease-spring),
+    box-shadow 0.3s,
+    background 0.3s;
+  cursor: pointer;
+  overflow: visible;
+  animation: splashBtnPulse 3.4s ease-in-out infinite;
+}
+.btn.splash-play-btn:hover {
+  background: rgba(12, 50, 60, 0.72);
+  transform: translateY(-2px);
+}
+.btn.splash-play-btn:active {
+  transform: scale(0.97);
+}
+
+.btn.splash-play-btn .btn-icon {
+  display: inline-flex;
+}
+
+/* The arrow icon — bare cyan glyph, no chip background. */
+.splash-play-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  color: var(--accent);
+  text-shadow: 0 0 8px rgba(0, 229, 204, 0.55);
+  line-height: 1;
+}
+
+/* ── Bottom credit ── */
+.splash-credit {
+  position: absolute;
+  bottom: calc(28px + var(--safe-b));
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  color: rgba(159, 233, 220, 0.45);
+  z-index: 2;
+}
+
+/* ── Animations ── */
+@keyframes splashFadeUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes splashMarkBreath {
+  0%, 100% { opacity: 0.7; transform: scale(1); }
+  50%      { opacity: 1.0; transform: scale(1.1); }
+}
+@keyframes splashBtnPulse {
+  0%, 100% {
+    box-shadow:
+      0 8px 22px rgba(0, 0, 0, 0.5),
+      inset 0 1px 0 rgba(255, 255, 255, 0.08),
+      0 0 18px rgba(0, 229, 204, 0.22);
+  }
+  50% {
+    box-shadow:
+      0 8px 22px rgba(0, 0, 0, 0.5),
+      inset 0 1px 0 rgba(255, 255, 255, 0.08),
+      0 0 32px rgba(0, 229, 204, 0.45);
+  }
+}

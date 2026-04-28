@@ -1,0 +1,166 @@
+/* reaction.css — reaction reveal screen.
+ * SAFE TO REPLACE: only scopes inside #screen-reaction + .rxn-* / .rxn-screen.
+ * To swap a Figma redesign: rewrite this file entirely. JS contract unchanged.
+ */
+
+#screen-reaction {
+  background: #050810;
+}
+.rxn-screen {
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── header ── */
+.rxn-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: calc(40px + var(--safe-t)) 20px 10px;
+  flex-shrink: 0;
+}
+.rxn-title-wrap {
+  flex: 1;
+  text-align: center;
+  min-width: 0;
+}
+.rxn-title-wrap .hd-2 { font-size: 24px; }
+.rxn-title-wrap .txt { font-size: 12px; margin-top: 2px; }
+
+/* ── 3D viewer area ── */
+.rxn-viewer {
+  flex-shrink: 0;
+  margin: 8px 20px 0;
+  height: 280px;
+  border-radius: 20px;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse at 50% 30%, rgba(0,229,204,0.18) 0%, transparent 60%),
+    radial-gradient(ellipse at 50% 100%, rgba(13,115,119,0.18) 0%, transparent 70%),
+    linear-gradient(180deg, #061018 0%, #02060c 100%);
+  border: 1px solid rgba(0,229,204,0.2);
+  position: relative;
+  box-shadow: 0 12px 30px rgba(0,229,204,0.08);
+}
+.rxn-viewer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    repeating-linear-gradient(0deg,  rgba(255,255,255,0.015) 0 1px, transparent 1px 4px),
+    repeating-linear-gradient(90deg, rgba(255,255,255,0.015) 0 1px, transparent 1px 4px);
+  pointer-events: none;
+  z-index: 1;
+}
+.rxn-viewer canvas {
+  position: relative;
+  z-index: 2;
+}
+.rxn-viewer-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  height: 100%;
+  font-size: 36px;
+  color: var(--muted);
+  text-align: center;
+  line-height: 1.4;
+}
+
+/* ── scrolling info body ── */
+.rxn-body {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding: 14px 20px calc(120px + var(--safe-b));
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.rxn-body::-webkit-scrollbar { display: none; }
+
+/* ── lists inside cards ── */
+.rxn-list {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.rxn-list-item {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  font-size: 13px;
+  color: var(--text2);
+  line-height: 1.5;
+}
+.rxn-list-bullet {
+  color: var(--accent);
+  font-size: 18px;
+  line-height: 1;
+  flex-shrink: 0;
+  margin-top: -2px;
+}
+.rxn-list-star {
+  color: var(--gold);
+  font-size: 13px;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.rxn-list-empty {
+  font-size: 12px;
+  color: var(--muted);
+  font-style: italic;
+}
+
+/* ── balanced equation panel ── */
+.rxn-equation-text {
+  margin-top: 10px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: rgba(0,229,204,0.06);
+  border: 1px solid rgba(0,229,204,0.2);
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.2px;
+  color: var(--text);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.rxn-equation-context {
+  margin-top: 8px;
+  font-size: 12px;
+  line-height: 1.55;
+}
+.rxn-tags {
+  display: flex;
+  gap: 6px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+/* ── library CTA card ── */
+.rxn-cta-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  cursor: pointer;
+}
+.rxn-cta-text { flex: 1; min-width: 0; }
+.rxn-cta-arrow {
+  font-size: 24px;
+  color: var(--accent);
+  font-weight: 300;
+  flex-shrink: 0;
+}
+
+/* favourite button "on" state */
+#screen-reaction .icon-btn.on {
+  background: rgba(255, 200, 87, 0.12);
+  border-color: rgba(255, 200, 87, 0.4);
+}

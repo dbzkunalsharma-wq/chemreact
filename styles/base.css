@@ -1,0 +1,169 @@
+/* base.css — global reset, phone frame, screen base, scroll containers. */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+input, textarea {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #000;
+  color: var(--text);
+  font-family: var(--font-stack);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: "cv11", "ss01";
+}
+
+button {
+  font-family: inherit;
+  color: inherit;
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+
+a { color: inherit; text-decoration: none; }
+
+/* ──────────────────────────────────────────────
+   PHONE FRAME — desktop simulator + mobile bleed
+────────────────────────────────────────────── */
+.phone-wrap {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(ellipse at 30% 20%, #0a1220 0%, #050810 60%, #020308 100%);
+}
+
+.phone {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  max-width: 420px;
+  max-height: 900px;
+  background: var(--dark);
+  border-radius: 0;
+  overflow: hidden;
+  box-shadow:
+    0 50px 120px rgba(0, 0, 0, 0.6),
+    0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+
+@media (min-width: 760px) {
+  .phone {
+    border-radius: 46px;
+    border: 10px solid #0b0e14;
+    box-shadow:
+      0 60px 140px rgba(0, 0, 0, 0.7),
+      0 0 0 2px rgba(255, 255, 255, 0.05),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+  }
+  .phone::before {
+    content: "";
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 110px;
+    height: 28px;
+    background: #000;
+    border-radius: 20px;
+    z-index: 999;
+    box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.04);
+  }
+  .phone::after {
+    content: "";
+    position: absolute;
+    top: 22px;
+    left: calc(50% + 34px);
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #0a0a0a;
+    box-shadow:
+      inset 0 0 0 2px #141820,
+      inset 0 0 3px rgba(0, 229, 204, 0.3);
+    z-index: 1000;
+  }
+}
+
+.phone-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* ──────────────────────────────────────────────
+   SCREEN BASE — router targets
+────────────────────────────────────────────── */
+.screen {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(12px) scale(0.995);
+  transition:
+    opacity 0.35s var(--ease-out),
+    transform 0.45s var(--ease-out);
+}
+
+.screen.active {
+  opacity: 1;
+  pointer-events: all;
+  transform: translateY(0) scale(1);
+}
+
+/* Scrollable region — hides scrollbars across browsers. */
+.scroll {
+  width: 100%;
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+  scrollbar-width: none;
+}
+.scroll::-webkit-scrollbar { display: none; }
+
+/* Generic horizontal scroller helper used by various rows. */
+.h-scroll {
+  display: flex;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.h-scroll::-webkit-scrollbar { display: none; }
+
+/* ──────────────────────────────────────────────
+   GLOBAL ANIMATIONS shared across screens/components
+────────────────────────────────────────────── */
+@keyframes pulse       { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+@keyframes shimmer     { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
+@keyframes spFloat     { 0%, 100% { transform: translateY(0) scale(1); opacity: 0.3; } 50% { transform: translateY(-30px) scale(1.4); opacity: 0.8; } }
+@keyframes spLogo      { from { opacity: 0; transform: scale(0.8); } to { opacity: 1; transform: scale(1); } }
+@keyframes loadFill    { from { width: 0%; } to { width: 100%; } }
+@keyframes scanGrid    { from { background-position: 0 0; } to { background-position: 0 -200px; } }
+@keyframes scanLine    { 0% { top: 6px; opacity: 0; } 15% { opacity: 1; } 85% { opacity: 1; } 100% { top: calc(100% - 6px); opacity: 0; } }
+@keyframes slotPop     { 0% { transform: scale(0.6); } 60% { transform: scale(1.15); } 100% { transform: scale(1); } }
+@keyframes combinePulse {
+  0%, 100% { box-shadow: 0 10px 40px rgba(0, 229, 204, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.3); }
+  50%      { box-shadow: 0 10px 50px rgba(0, 229, 204, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.3); }
+}
+@keyframes toastIn  { from { opacity: 0; transform: translateY(20px) scale(0.96); } to { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes toastOut { from { opacity: 1; transform: translateY(0) scale(1); }    to { opacity: 0; transform: translateY(-6px) scale(0.98); } }

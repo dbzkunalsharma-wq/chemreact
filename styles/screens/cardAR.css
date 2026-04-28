@@ -1,0 +1,261 @@
+/* cardAR.css — AR card preview screen.
+ * SAFE TO REPLACE: scopes inside #screen-cardAR + .car-* / .card-ar-canvas.
+ *
+ * Visual language matches scan.css (dark camera-ish bg + teal accents) so this
+ * preview reads like a sibling of the real scan flow.
+ */
+
+#screen-cardAR { background: #000; overflow: hidden; }
+
+.car-screen {
+  position: absolute;
+  inset: 0;
+}
+
+/* faux camera background — same gradient family as scan.css */
+.car-camera-bg {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 50% 30%, #0a1628 0%, #050a12 55%, #02050a 100%);
+  overflow: hidden;
+}
+.car-camera-bg::before {
+  content: "";
+  position: absolute;
+  inset: -50%;
+  background:
+    repeating-linear-gradient(0deg,  rgba(255,255,255,0.012) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(90deg, rgba(255,255,255,0.012) 0 1px, transparent 1px 3px);
+  transform: perspective(600px) rotateX(60deg);
+  animation: car-grid 20s linear infinite;
+}
+@keyframes car-grid {
+  from { transform: perspective(600px) rotateX(60deg) translateY(0); }
+  to   { transform: perspective(600px) rotateX(60deg) translateY(60px); }
+}
+
+/* the two faux cards — positioned in the lower portion of the screen so the
+ * 3D molecule has clear room to "float" above each one. */
+.car-fake-card {
+  position: absolute;
+  width: 132px;
+  aspect-ratio: 120 / 168;
+  bottom: 22%;
+  border-radius: 16px;
+  filter: drop-shadow(0 14px 28px rgba(0, 229, 204, 0.18))
+          drop-shadow(0 4px 8px rgba(0, 0, 0, 0.45));
+  pointer-events: none;
+  animation: car-card-float 4s ease-in-out infinite;
+}
+.car-fake-card svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.car-card-a {
+  left: 22%;
+  transform: translateX(-50%) rotate(-6deg);
+  animation-delay: 0s;
+}
+.car-card-b {
+  left: 68%;
+  transform: translateX(-50%) rotate(5deg);
+  animation-delay: 1.6s;
+}
+@keyframes car-card-float {
+  0%, 100% { translate: 0 0; }
+  50%      { translate: 0 -4px; }
+}
+
+/* Floating formula tag positioned above each card, marking the molecule's
+ * anchor point. Glass-blurred pill with accent border. */
+.car-formula-label {
+  position: absolute;
+  bottom: calc(22% + 132px * (168 / 120) + 16px);
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(10, 15, 25, 0.7);
+  -webkit-backdrop-filter: blur(12px);
+          backdrop-filter: blur(12px);
+  border: 1px solid rgba(0, 229, 204, 0.4);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: 0.4px;
+  pointer-events: none;
+  white-space: nowrap;
+  transform: translateX(-50%);
+  z-index: 2;
+}
+.car-formula-a { left: 22%; }
+.car-formula-b { left: 68%; }
+.car-formula-arrow { opacity: 0.8; margin-left: 2px; }
+
+/* the WebGL canvas host fills the screen and lets DOM clicks go through */
+.car-canvas-host {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.card-ar-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  pointer-events: none;
+}
+
+/* HUD overlay — sits above the canvas */
+.car-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  pointer-events: none;
+}
+.car-overlay > * { pointer-events: auto; }
+
+.car-topbar {
+  padding: calc(40px + var(--safe-t)) 16px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.car-back {
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  background: rgba(10, 15, 25, 0.6);
+  -webkit-backdrop-filter: blur(12px);
+          backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--text);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: transform 0.15s var(--ease-out);
+}
+.car-back:active { transform: scale(0.92); }
+
+.car-title-wrap { text-align: center; flex: 1; min-width: 0; }
+.car-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: 0.2px;
+}
+.car-sub {
+  font-size: 10.5px;
+  color: var(--muted);
+  letter-spacing: 1.4px;
+  margin-top: 2px;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.car-mode-pill {
+  font-size: 10.5px;
+  color: var(--accent);
+  background: rgba(0, 229, 204, 0.10);
+  padding: 6px 12px;
+  border-radius: 20px;
+  border: 1px solid rgba(0, 229, 204, 0.30);
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+.car-badge { animation: carPulse 1.5s ease-in-out infinite; }
+@keyframes carPulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.65; }
+}
+
+/* bottom strip: prev / readout / next */
+.car-bottom {
+  margin-top: auto;
+  padding: 16px 16px calc(16px + var(--safe-b));
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.car-cycle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  background: rgba(10, 15, 25, 0.65);
+  -webkit-backdrop-filter: blur(12px);
+          backdrop-filter: blur(12px);
+  border: 1px solid rgba(0, 229, 204, 0.30);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: transform 0.15s var(--ease-out), background 0.15s var(--ease-out);
+}
+.car-cycle:hover  { background: rgba(0, 229, 204, 0.12); }
+.car-cycle:active { transform: scale(0.95); }
+
+/* PLAY/STOP — primary-flavored gradient when active */
+.car-play {
+  background: linear-gradient(135deg,
+    rgba(0, 229, 204, 0.18) 0%,
+    rgba(0, 229, 204, 0.08) 100%);
+  border-color: rgba(0, 229, 204, 0.55);
+  color: var(--accent);
+}
+.car-play--on {
+  background: linear-gradient(135deg,
+    rgba(0, 229, 204, 0.55) 0%,
+    rgba(0, 180, 160, 0.45) 100%);
+  border-color: rgba(0, 229, 204, 0.85);
+  color: #042624;
+  box-shadow: 0 4px 14px rgba(0, 229, 204, 0.35);
+}
+
+.car-readout {
+  flex: 1;
+  min-width: 0;
+  text-align: center;
+  background: rgba(10, 15, 25, 0.55);
+  -webkit-backdrop-filter: blur(12px);
+          backdrop-filter: blur(12px);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 8px 12px;
+}
+.car-readout-formula {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.car-readout-effect {
+  font-size: 10.5px;
+  color: var(--accent);
+  letter-spacing: 1.2px;
+  margin-top: 2px;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+@media (max-width: 360px) {
+  .car-fake-card     { width: 110px; }
+  .car-card-a        { left: 24%; }
+  .car-card-b        { left: 70%; }
+  .car-formula-a     { left: 24%; }
+  .car-formula-b     { left: 70%; }
+  .car-formula-label { bottom: calc(22% + 110px * (168 / 120) + 14px); font-size: 11px; }
+  .car-cycle span    { display: none; }
+  .car-play span     { display: inline; }
+}

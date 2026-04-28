@@ -1,0 +1,21 @@
+/* screens.css — barrel that imports per-screen CSS files.
+ *
+ * EACH SCREEN'S CSS IS ITS OWN FILE in styles/screens/.
+ * This file just imports them in order. Adding a new screen = add @import here.
+ *
+ * To swap a Figma redesign for any screen: replace styles/screens/<name>.css.
+ * No need to touch this file or any other screen.
+ */
+
+@import url('./screens/splash.css');
+@import url('./screens/home.css');
+@import url('./screens/scan.css');
+@import url('./screens/library.css');
+@import url('./screens/elementDetail.css');
+@import url('./screens/reaction.css');
+@import url('./screens/journal.css');
+@import url('./screens/onboarding.css');
+@import url('./screens/cardAR.css');
+
+/* MUST stay last — overrides per-screen styles to apply universal glass. */
+@import url('./screens/_glassOverrides.css');

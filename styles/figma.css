@@ -1,0 +1,170 @@
+/* figma.css — utility classes that map Figma constructs to CSS.
+ *
+ * WORKFLOW:
+ *   1. Design a screen in Figma. Use auto-layout, design tokens matching tokens.css.
+ *   2. Drop the markup into screens/X.js (your screen's mount function).
+ *   3. Use these utility classes for layout/effects so you don't fight CSS.
+ *   4. Screen-specific rules go in styles/screens/X.css — that file ONLY scopes inside #screen-X.
+ *   5. To swap a Figma redesign in: replace screens/X.css and screens/X.js. Nothing else changes.
+ *
+ * CONVENTION: every utility prefixed `f-` (figma) so they don't collide with semantic classes.
+ */
+
+/* ─── AUTO-LAYOUT (Figma frame direction) ─────────────────────────── */
+.f-col   { display: flex; flex-direction: column; }
+.f-row   { display: flex; flex-direction: row; }
+.f-wrap  { flex-wrap: wrap; }
+.f-grow  { flex: 1 1 auto; min-width: 0; min-height: 0; }
+.f-shrink-0 { flex-shrink: 0; }
+
+/* alignment shortcuts (Figma: align-items / justify-content) */
+.f-center        { align-items: center; justify-content: center; }
+.f-center-x      { justify-content: center; }
+.f-center-y      { align-items: center; }
+.f-between       { justify-content: space-between; }
+.f-around        { justify-content: space-around; }
+.f-start         { justify-content: flex-start; }
+.f-end           { justify-content: flex-end; }
+.f-baseline      { align-items: baseline; }
+
+/* ─── GAPS (Figma's auto-layout gap, on 4-px grid) ─────────────────── */
+.f-gap-2  { gap: 2px; }
+.f-gap-4  { gap: 4px; }
+.f-gap-6  { gap: 6px; }
+.f-gap-8  { gap: 8px; }
+.f-gap-10 { gap: 10px; }
+.f-gap-12 { gap: 12px; }
+.f-gap-14 { gap: 14px; }
+.f-gap-16 { gap: 16px; }
+.f-gap-20 { gap: 20px; }
+.f-gap-24 { gap: 24px; }
+
+/* ─── PADDING (Figma's auto-layout padding) ────────────────────────── */
+.f-pad-4  { padding: 4px; }
+.f-pad-8  { padding: 8px; }
+.f-pad-12 { padding: 12px; }
+.f-pad-16 { padding: 16px; }
+.f-pad-20 { padding: 20px; }
+.f-pad-24 { padding: 24px; }
+.f-pad-x-16 { padding-left: 16px; padding-right: 16px; }
+.f-pad-x-20 { padding-left: 20px; padding-right: 20px; }
+.f-pad-y-12 { padding-top: 12px; padding-bottom: 12px; }
+.f-pad-y-16 { padding-top: 16px; padding-bottom: 16px; }
+
+/* ─── CORNER RADIUS (Figma) ────────────────────────────────────────── */
+.f-r-4   { border-radius: 4px; }
+.f-r-6   { border-radius: 6px; }
+.f-r-8   { border-radius: 8px; }
+.f-r-10  { border-radius: 10px; }
+.f-r-12  { border-radius: 12px; }
+.f-r-14  { border-radius: 14px; }
+.f-r-16  { border-radius: 16px; }
+.f-r-20  { border-radius: 20px; }
+.f-r-24  { border-radius: 24px; }
+.f-r-full { border-radius: 999px; }
+
+/* ─── EFFECTS (Figma's effects panel) ──────────────────────────────── */
+
+/* drop shadows */
+.f-sh-sm { box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
+.f-sh-md { box-shadow: 0 8px 24px rgba(0,0,0,0.3); }
+.f-sh-lg { box-shadow: 0 24px 60px rgba(0,0,0,0.4); }
+.f-sh-glow-accent { box-shadow: 0 0 20px rgba(0,229,204,0.4); }
+.f-sh-glow-warm   { box-shadow: 0 0 20px rgba(255,200,87,0.4); }
+
+/* background blur (Figma "background blur" effect) */
+.f-blur-4  { backdrop-filter: blur(4px);  -webkit-backdrop-filter: blur(4px); }
+.f-blur-8  { backdrop-filter: blur(8px);  -webkit-backdrop-filter: blur(8px); }
+.f-blur-12 { backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+.f-blur-16 { backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); }
+
+/* glass surfaces (preset combos) */
+.f-glass {
+  background: rgba(10, 15, 25, 0.6);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+.f-glass-light {
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* ─── BACKGROUNDS (Figma fill: linear/radial gradients matching tokens) */
+.f-bg-card    { background: var(--card); }
+.f-bg-card-2  { background: var(--card2); }
+.f-bg-dark    { background: var(--dark); }
+.f-bg-dark-2  { background: var(--dark2); }
+.f-bg-grad-teal {
+  background: linear-gradient(135deg, var(--teal) 0%, var(--accent) 100%);
+}
+.f-bg-grad-teal-deep {
+  background: linear-gradient(135deg, #0D7377 0%, #0A5255 60%, #08343A 100%);
+}
+.f-bg-grad-gold {
+  background: linear-gradient(135deg, var(--gold), #E39B1E);
+}
+.f-bg-grad-card {
+  background: linear-gradient(135deg, rgba(0,229,204,0.08), rgba(13,115,119,0.04));
+}
+
+/* ─── TEXT ─────────────────────────────────────────────────────────── */
+.f-text       { color: var(--text); }
+.f-text-2     { color: var(--text2); }
+.f-muted      { color: var(--muted); }
+.f-muted-2    { color: var(--muted2); }
+.f-accent     { color: var(--accent); }
+.f-gold       { color: var(--gold); }
+.f-streak     { color: var(--streak); }
+
+.f-uppercase  { text-text-transform: uppercase; text-transform: uppercase; }
+.f-track-1    { letter-spacing: 0.5px; }
+.f-track-2    { letter-spacing: 1px; }
+.f-track-3    { letter-spacing: 1.6px; }
+.f-track-tight{ letter-spacing: -0.4px; }
+
+.f-w-400 { font-weight: 400; }
+.f-w-500 { font-weight: 500; }
+.f-w-600 { font-weight: 600; }
+.f-w-700 { font-weight: 700; }
+.f-w-800 { font-weight: 800; }
+.f-w-900 { font-weight: 900; }
+
+.f-tnum  { font-variant-numeric: tabular-nums; }
+
+/* ─── INTERACTION ──────────────────────────────────────────────────── */
+.f-press     { transition: transform 0.15s var(--ease-out); cursor: pointer; }
+.f-press:active { transform: scale(0.96); }
+
+/* ─── BORDERS ──────────────────────────────────────────────────────── */
+.f-border       { border: 1px solid var(--line); }
+.f-border-accent{ border: 1px solid rgba(0,229,204,0.25); }
+.f-border-warn  { border: 1px solid rgba(255,200,87,0.35); }
+
+/* ─── POSITIONING ──────────────────────────────────────────────────── */
+.f-rel { position: relative; }
+.f-abs { position: absolute; }
+.f-fixed { position: fixed; }
+.f-fill { position: absolute; inset: 0; }
+.f-fill-x { left: 0; right: 0; }
+.f-fill-y { top: 0; bottom: 0; }
+
+.f-z-1 { z-index: 1; }
+.f-z-5 { z-index: 5; }
+.f-z-10 { z-index: 10; }
+.f-z-50 { z-index: 50; }
+
+/* ─── OVERFLOW ─────────────────────────────────────────────────────── */
+.f-clip   { overflow: hidden; }
+.f-scroll-y { overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+.f-scroll-y::-webkit-scrollbar { display: none; }
+.f-scroll-x { overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+.f-scroll-x::-webkit-scrollbar { display: none; }
+.f-snap-x { scroll-snap-type: x mandatory; }
+.f-snap-y { scroll-snap-type: y mandatory; }
+
+/* ─── SAFE AREA HELPERS ────────────────────────────────────────────── */
+.f-safe-top    { padding-top: var(--safe-t); }
+.f-safe-bottom { padding-bottom: var(--safe-b); }

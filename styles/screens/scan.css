@@ -1,0 +1,422 @@
+/* scan.css — painterly chromatic scan screen.
+ * Card slots are soft chromatic AURAS (radial-gradient blobs).
+ * Center cymatic mandala replaces corner-bracket viewfinder.
+ * Scanning animation = chromatic radial ping out from center.
+ * SCOPED to #screen-scan and the .scan-* / .scan-slot-* / .scan-mandala-*
+ * / .scan-overlay-v2 classes only.
+ */
+
+#screen-scan {
+  background: #070914;
+  position: relative;
+  overflow: hidden;
+}
+
+.scan-screen {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+/* Background bloom host — soft chromatic blooms drift behind everything. */
+.scan-bg-host {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+/* Overlay container — transparent, lets bg + mandala show through. */
+.scan-overlay-v2 {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  z-index: 2;
+  pointer-events: none;
+}
+.scan-overlay-v2 > * { pointer-events: all; }
+
+/* ============================================================== */
+/* TOPBAR                                                          */
+/* ============================================================== */
+.scan-topbar-v2 {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: calc(40px + var(--safe-t)) 16px 16px;
+  position: relative;
+  z-index: 3;
+}
+
+.scan-back-v2 {
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.06);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255,255,255,0.1);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: transform 0.15s var(--ease-out), background 0.2s;
+  padding: 0;
+}
+.scan-back-v2:active { transform: scale(0.92); }
+.scan-back-v2 svg { display: block; }
+
+.scan-title-block { flex: 1; text-align: center; }
+.scan-title-v2 {
+  font-size: 14px;
+  font-weight: 700;
+  color: white;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+}
+.scan-sub-v2 {
+  font-size: 11px;
+  color: rgba(255,255,255,0.5);
+  margin-top: 3px;
+  letter-spacing: 0.3px;
+}
+
+.scan-mode-v2 {
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(0, 229, 204, 0.10);
+  border: 1px solid rgba(0, 229, 204, 0.30);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.4px;
+  color: var(--accent);
+  cursor: pointer;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+
+/* ============================================================== */
+/* CYMATIC MANDALA — center scanning visual                        */
+/* ============================================================== */
+.scan-mandala {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -55%);
+  width: 280px;
+  height: 280px;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.scan-mandala-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.12);
+  animation: scanMandalaSpin 24s linear infinite;
+}
+.scan-mandala-ring-1 { inset: 0; }
+.scan-mandala-ring-2 {
+  inset: 30px;
+  border-color: rgba(0,229,204,0.18);
+  animation-direction: reverse;
+  animation-duration: 18s;
+}
+.scan-mandala-ring-3 {
+  inset: 60px;
+  border-color: rgba(0,229,204,0.10);
+  animation-duration: 30s;
+}
+
+/* Soft sonar-like bloom expanding from center. */
+.scan-mandala-ping {
+  position: absolute;
+  top: 50%; left: 50%;
+  width: 60px; height: 60px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(circle at 50% 50%,
+    rgba(0,229,204,0.50) 0%,
+    rgba(13,115,119,0.25) 50%,
+    transparent 80%);
+  filter: blur(8px);
+  opacity: 0;
+  animation: scanMandalaPing 3.5s ease-out infinite;
+}
+
+/* Soft inner pulse — breathing teal bloom. */
+.scan-mandala-pulse {
+  position: absolute;
+  inset: 90px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 50%,
+    rgba(0,229,204,0.35) 0%,
+    rgba(13,115,119,0.18) 50%,
+    transparent 80%);
+  filter: blur(20px);
+  animation: scanMandalaPulse 3.5s ease-in-out infinite;
+}
+
+.scan-mandala-core {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  background: white;
+  box-shadow: 0 0 24px rgba(255,255,255,0.7);
+  animation: scanMandalaCore 1.5s ease-in-out infinite;
+}
+
+@keyframes scanMandalaSpin { to { transform: rotate(360deg); } }
+@keyframes scanMandalaPulse {
+  0%,100% { opacity: 0.5; transform: scale(0.9); }
+  50%     { opacity: 1;   transform: scale(1.15); }
+}
+@keyframes scanMandalaCore {
+  0%,100% { opacity: 0.7; transform: translate(-50%,-50%) scale(0.8); }
+  50%     { opacity: 1;   transform: translate(-50%,-50%) scale(1.1); }
+}
+@keyframes scanMandalaPing {
+  0%   { opacity: 0;   transform: translate(-50%, -50%) scale(0.4); }
+  20%  { opacity: 0.9; }
+  100% { opacity: 0;   transform: translate(-50%, -50%) scale(4); }
+}
+
+/* ============================================================== */
+/* SLOTS — chromatic auras                                         */
+/* ============================================================== */
+.scan-slots-v2 {
+  position: absolute;
+  bottom: calc(280px + var(--safe-b));
+  left: 0; right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 32px;
+  padding: 0 20px;
+  z-index: 3;
+}
+
+.scan-slot-v2 {
+  --slot-color: rgba(160,160,200,0.5);
+  position: relative;
+  width: 110px;
+  height: 130px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.5s var(--ease-out);
+}
+
+.scan-slot-aura {
+  position: absolute;
+  inset: -30%;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 50%,
+    var(--slot-color) 0%,
+    var(--slot-color) 25%,
+    transparent 70%);
+  filter: blur(28px);
+  opacity: 0.5;
+  transition: opacity 0.5s, filter 0.5s;
+  animation: slotAuraBreath 3s ease-in-out infinite;
+  pointer-events: none;
+}
+.scan-slot-v2.detected .scan-slot-aura {
+  opacity: 1;
+  animation-duration: 1.6s;
+  filter: blur(20px);
+}
+
+.scan-slot-content {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  text-align: center;
+}
+
+.scan-slot-symbol {
+  font-size: 56px;
+  font-weight: 900;
+  color: rgba(255,255,255,0.35);
+  letter-spacing: -2px;
+  line-height: 1;
+  text-shadow: 0 0 30px rgba(255,255,255,0.15);
+  transition: color 0.4s, text-shadow 0.4s;
+}
+.scan-slot-v2.detected .scan-slot-symbol {
+  color: white;
+  text-shadow: 0 0 40px var(--slot-color);
+  animation: slotSymbolPop 0.5s var(--ease-spring);
+}
+
+.scan-slot-name {
+  font-size: 11px;
+  letter-spacing: 1px;
+  color: rgba(255,255,255,0.5);
+  text-transform: uppercase;
+  font-weight: 700;
+  transition: color 0.3s;
+}
+.scan-slot-v2.detected .scan-slot-name { color: white; }
+
+.scan-plus {
+  font-size: 32px;
+  color: rgba(255,255,255,0.3);
+  font-weight: 200;
+  text-shadow: 0 0 20px rgba(255,255,255,0.15);
+}
+
+@keyframes slotAuraBreath {
+  0%,100% { transform: scale(0.92); opacity: 0.4; }
+  50%     { transform: scale(1.08); opacity: 0.6; }
+}
+@keyframes slotSymbolPop {
+  0%   { transform: scale(0.6); }
+  60%  { transform: scale(1.15); }
+  100% { transform: scale(1); }
+}
+
+/* ============================================================== */
+/* STATUS                                                          */
+/* ============================================================== */
+.scan-status-v2 {
+  position: absolute;
+  bottom: calc(220px + var(--safe-b));
+  left: 0; right: 0;
+  text-align: center;
+  font-size: 13px;
+  color: rgba(255,255,255,0.6);
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  transition: all 0.3s;
+  padding: 0 24px;
+  z-index: 3;
+}
+.scan-status-v2.ready {
+  font-size: 14px;
+  font-weight: 800;
+  background: linear-gradient(120deg, #FFD23F, #FF3F86, #00E5CC);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  animation: statusShift 3s ease-in-out infinite;
+  letter-spacing: 0.6px;
+}
+@keyframes statusShift {
+  0%,100% { background-position: 0% 50%; }
+  50%     { background-position: 100% 50%; }
+}
+
+/* ============================================================== */
+/* COMBINE BUTTON — glass with chromatic ring when ready           */
+/* ============================================================== */
+.scan-combine-v2 {
+  position: absolute;
+  bottom: calc(140px + var(--safe-b));
+  left: 50%;
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 36px;
+  border-radius: 60px;
+  background: rgba(255,255,255,0.04);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid rgba(255,255,255,0.08);
+  color: rgba(255,255,255,0.3);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  cursor: not-allowed;
+  pointer-events: none;
+  transition: all 0.4s var(--ease-out);
+  z-index: 3;
+  font-family: inherit;
+}
+.scan-combine-v2.ready {
+  cursor: pointer;
+  pointer-events: all;
+  background: rgba(255,255,255,0.12);
+  border-color: rgba(255,255,255,0.2);
+  color: white;
+  box-shadow:
+    0 10px 40px rgba(255,63,134,0.3),
+    inset 0 1px 0 rgba(255,255,255,0.2),
+    0 0 0 1px rgba(255,210,63,0.4);
+  animation: combinePulse 2s ease-in-out infinite;
+}
+.scan-combine-v2.ready:active { transform: translateX(-50%) scale(0.96); }
+
+.scan-combine-arrow { font-size: 18px; line-height: 1; }
+
+@keyframes combinePulse {
+  0%,100% {
+    box-shadow:
+      0 10px 40px rgba(255,63,134,0.3),
+      inset 0 1px 0 rgba(255,255,255,0.2),
+      0 0 0 1px rgba(255,210,63,0.4);
+  }
+  50% {
+    box-shadow:
+      0 14px 60px rgba(255,63,134,0.5),
+      inset 0 1px 0 rgba(255,255,255,0.3),
+      0 0 0 1px rgba(255,210,63,0.7),
+      0 0 40px rgba(0,229,204,0.4);
+  }
+}
+
+/* ============================================================== */
+/* SIMULATE BUTTON                                                 */
+/* ============================================================== */
+.scan-sim-v2 {
+  position: absolute;
+  bottom: calc(80px + var(--safe-b));
+  left: 50%;
+  transform: translateX(-50%);
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.1);
+  color: rgba(255,255,255,0.5);
+  padding: 8px 18px;
+  border-radius: 30px;
+  font-size: 11px;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  font-weight: 600;
+  cursor: pointer;
+  z-index: 3;
+  font-family: inherit;
+  transition: background 0.2s, color 0.2s;
+}
+.scan-sim-v2:active {
+  background: rgba(255,255,255,0.06);
+  color: rgba(255,255,255,0.75);
+}
+
+/* ============================================================== */
+/* TIP                                                             */
+/* ============================================================== */
+.scan-tip-v2 {
+  position: absolute;
+  bottom: calc(28px + var(--safe-b));
+  left: 20px; right: 20px;
+  text-align: center;
+  font-size: 11px;
+  color: rgba(255,255,255,0.45);
+  line-height: 1.4;
+  letter-spacing: 0.2px;
+  z-index: 3;
+}
+.scan-tip-v2 strong {
+  color: #FFD23F;
+  font-weight: 700;
+}

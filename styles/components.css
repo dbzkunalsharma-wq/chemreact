@@ -1,0 +1,562 @@
+/* components.css — reusable component styles.
+ *
+ * NOTE: @import rules MUST come before any other rules in CSS. Keep the
+ * @import block below this header comment and above any selectors. Add new
+ * component stylesheets to the imports below.
+ */
+
+@import url('./components/bloomBg.css');
+@import url('./components/mascot.css');
+@import url('./components/mascotBubble.css');
+@import url('./components/confetti.css');
+@import url('./components/levelUpOverlay.css');
+@import url('./components/glitchReveal.css');
+@import url('./components/periodicTile.css');
+
+/* ════════════════════════════════════════════════
+   ELEMENT CHIP — 82x140 card with tinted glow
+════════════════════════════════════════════════ */
+.el-chip {
+  flex-shrink: 0;
+  width: 82px;
+  height: 140px;
+  background: var(--card);
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 8px 12px;
+  border: 1px solid var(--line);
+  cursor: pointer;
+  transition: transform 0.15s var(--ease-out), border-color 0.2s, background 0.2s, box-shadow 0.25s;
+  position: relative;
+  overflow: hidden;
+  color: var(--text);
+}
+.el-chip .el-glow {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 0%, var(--el-color, transparent) 0%, transparent 55%);
+  opacity: 0.18;
+  pointer-events: none;
+  transition: opacity 0.25s;
+}
+.el-chip:hover {
+  border-color: rgba(0, 229, 204, 0.25);
+}
+.el-chip:hover .el-glow { opacity: 0.28; }
+.el-chip:active { transform: scale(0.94); }
+.el-chip.selected {
+  border-color: var(--accent);
+  box-shadow: 0 0 20px rgba(0, 229, 204, 0.15);
+}
+.el-chip .el-num {
+  font-size: 11px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  align-self: flex-start;
+  position: relative;
+  z-index: 1;
+}
+.el-chip .el-sym {
+  font-size: 28px;
+  font-weight: 900;
+  letter-spacing: -1px;
+  color: var(--text);
+  position: relative;
+  z-index: 1;
+  text-shadow: 0 4px 18px rgba(0, 0, 0, 0.3);
+}
+.el-chip .el-name {
+  font-size: 11px;
+  color: var(--text2);
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  position: relative;
+  z-index: 1;
+}
+.el-chip.locked { opacity: 0.45; }
+.el-chip.locked .el-sym { filter: grayscale(0.8); }
+
+/* ════════════════════════════════════════════════
+   REACTION CARD
+════════════════════════════════════════════════ */
+.rxn-card {
+  width: 100%;
+  background: var(--card);
+  border-radius: 20px;
+  padding: 16px;
+  margin-bottom: 10px;
+  border: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  cursor: pointer;
+  transition: transform 0.15s, border-color 0.2s;
+  position: relative;
+  overflow: hidden;
+  color: var(--text);
+  text-align: left;
+}
+.rxn-card::before {
+  content: "";
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+  background: var(--accent);
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.rxn-card:active { transform: scale(0.985); }
+.rxn-card:hover { border-color: rgba(0, 229, 204, 0.25); }
+.rxn-card:hover::before { opacity: 1; }
+.rc-icon {
+  width: 54px; height: 54px;
+  border-radius: 14px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 24px;
+  flex-shrink: 0;
+  position: relative;
+  overflow: hidden;
+  color: white;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+.rc-icon::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.18), transparent 50%);
+  pointer-events: none;
+}
+.rc-icon-glyph { position: relative; z-index: 1; }
+.rc-info { flex: 1; min-width: 0; }
+.rc-formula {
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: -0.3px;
+  line-height: 1.15;
+}
+.rc-name {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rc-tags {
+  display: flex;
+  gap: 5px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+.rc-tag {
+  font-size: 9.5px;
+  padding: 3px 7px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text2);
+  letter-spacing: 0.4px;
+  font-weight: 600;
+  border: 1px solid var(--line);
+  text-transform: uppercase;
+}
+.rc-tag.accent {
+  background: rgba(0, 229, 204, 0.08);
+  color: var(--accent);
+  border-color: rgba(0, 229, 204, 0.2);
+}
+.rc-arrow {
+  color: var(--muted);
+  font-size: 22px;
+  font-weight: 300;
+  margin-left: 4px;
+  flex-shrink: 0;
+}
+
+/* ════════════════════════════════════════════════
+   TOAST
+════════════════════════════════════════════════ */
+.toast-stack {
+  position: absolute;
+  bottom: calc(28px + var(--safe-b));
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: center;
+  gap: 8px;
+  z-index: 9000;
+  pointer-events: none;
+  width: max-content;
+  max-width: calc(100% - 32px);
+}
+.toast {
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 16px;
+  border-radius: 14px;
+  background: rgba(13, 19, 32, 0.92);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  color: var(--text);
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  box-shadow:
+    0 12px 40px rgba(0, 0, 0, 0.5),
+    0 0 0 1px rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--line);
+  opacity: 0;
+  transform: translateY(20px) scale(0.96);
+  transition:
+    opacity 0.28s var(--ease-out),
+    transform 0.32s var(--ease-spring);
+  max-width: 320px;
+}
+.toast.toast-in {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+.toast.toast-out {
+  opacity: 0;
+  transform: translateY(-6px) scale(0.98);
+  transition:
+    opacity 0.22s ease,
+    transform 0.22s ease;
+}
+.toast-ico {
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 800;
+  flex-shrink: 0;
+  background: var(--accent);
+  color: #042420;
+  line-height: 1;
+}
+.toast-msg {
+  flex: 1;
+  line-height: 1.4;
+}
+
+/* type variants — left bar accent */
+.toast-info    { border-left: 3px solid var(--accent); }
+.toast-info    .toast-ico { background: var(--accent);  color: #042420; }
+.toast-success { border-left: 3px solid var(--success); }
+.toast-success .toast-ico { background: var(--success); color: #032a25; }
+.toast-warn    { border-left: 3px solid var(--warn); }
+.toast-warn    .toast-ico { background: var(--warn);    color: #2a1c00; }
+.toast-error   { border-left: 3px solid var(--danger); }
+.toast-error   .toast-ico { background: var(--danger);  color: #2a040a; }
+
+/* ════════════════════════════════════════════════
+   DEV PANEL
+════════════════════════════════════════════════ */
+.dev-panel {
+  position: absolute;
+  top: calc(56px + var(--safe-t));
+  right: 12px;
+  width: 196px;
+  background: rgba(8, 12, 20, 0.92);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  padding: 10px;
+  z-index: 8000;
+  font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  color: var(--text2);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  opacity: 0;
+  transform: translateY(-8px) scale(0.96);
+  pointer-events: none;
+  transition: opacity 0.2s var(--ease-out), transform 0.25s var(--ease-out);
+}
+.dev-panel[data-open="true"] {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+}
+.dev-panel-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 4px 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  margin-bottom: 8px;
+}
+.dev-panel-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 6px var(--accent);
+  animation: pulse 1.6s ease-in-out infinite;
+}
+.dev-panel-title {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1.4px;
+  color: var(--accent);
+}
+.dev-panel-hint {
+  margin-left: auto;
+  font-size: 8.5px;
+  color: var(--muted2);
+  letter-spacing: 0.4px;
+  font-family: var(--font-stack);
+}
+.dev-panel-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 5px;
+  margin-bottom: 6px;
+}
+.dev-panel-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5px;
+}
+.dev-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  padding: 6px 2px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 8px;
+  color: var(--text2);
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  min-height: 38px;
+}
+.dev-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+.dev-btn:active { transform: scale(0.96); }
+.dev-btn.on {
+  background: rgba(0, 229, 204, 0.12);
+  border-color: rgba(0, 229, 204, 0.4);
+  color: var(--accent);
+}
+.dev-btn-sym {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: -0.3px;
+}
+.dev-btn-label {
+  font-size: 8px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+.dev-btn.on .dev-btn-label { color: var(--accent); }
+.dev-btn-wide {
+  flex-direction: row;
+  font-size: 10.5px;
+  padding: 8px 6px;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+}
+.dev-btn-danger {
+  color: var(--danger);
+  border-color: rgba(255, 92, 122, 0.25);
+  background: rgba(255, 92, 122, 0.05);
+}
+.dev-btn-danger:hover {
+  background: rgba(255, 92, 122, 0.12);
+  border-color: rgba(255, 92, 122, 0.4);
+}
+
+/* ════════════════════════════════════════════════
+   MOLECULE VIEWER (canvas host — owned by another agent)
+════════════════════════════════════════════════ */
+.molecule-viewer-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* ════════════════════════════════════════════════
+   BOTTOM NAV — frosted glass pill, dark active capsule
+════════════════════════════════════════════════ */
+.bnav {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  bottom: calc(16px + var(--safe-b));
+  height: 64px;
+  padding: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0;
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(24px) saturate(140%);
+  -webkit-backdrop-filter: blur(24px) saturate(140%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  box-shadow:
+    0 12px 36px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.2);
+  z-index: 7000;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(12px);
+  transition:
+    opacity 0.32s var(--ease-out),
+    transform 0.4s var(--ease-out);
+}
+.bnav[data-visible="true"] {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+.bnav-tab {
+  flex: 1;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: 999px;
+  color: rgba(255, 255, 255, 0.55);
+  cursor: pointer;
+  position: relative;
+  font-family: inherit;
+  padding: 0;
+  transition: color 0.2s var(--ease-out), transform 0.12s var(--ease-out);
+  -webkit-tap-highlight-color: transparent;
+}
+.bnav-tab:active { transform: scale(0.94); }
+
+/* Legacy inset pill — replaced by .bnav-morph SVG indicator below.
+ * Kept for compatibility with any markup that still uses it. */
+.bnav-tab-pill { display: none; }
+
+/* Metaball morph indicator — single SVG layer behind tabs. */
+.bnav-morph {
+  position: absolute;
+  inset: 4px;
+  width: calc(100% - 8px);
+  height: calc(100% - 8px);
+  pointer-events: none;
+  z-index: 0;
+}
+.bnav-blob {
+  /* Animated via JS tween in bottomNav.js — CSS transitions on SVG geometry
+     attributes are flaky across browsers. JS rAF guarantees the morph runs. */
+}
+/* Each tab's icon must sit ABOVE the indicator. */
+.bnav-tab .bnav-icon { position: relative; z-index: 1; }
+
+.bnav-icon {
+  position: relative;
+  z-index: 1;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s var(--ease-out), transform 0.2s var(--ease-out);
+}
+.bnav-icon svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.bnav-tab.active .bnav-icon { color: #ffffff; transform: scale(1.05); }
+.bnav-tab:not(.active):hover .bnav-icon { color: rgba(255, 255, 255, 0.8); }
+
+/* ──────────── FAB (Scan = primary action, center, lifted) ──────────── */
+.bnav-tab.bnav-fab {
+  flex: 0 0 auto;
+  width: 64px;
+  height: 64px;
+  margin: 0 4px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--teal) 0%, var(--accent) 100%);
+  transform: translateY(-14px);
+  box-shadow:
+    0 12px 28px rgba(0, 229, 204, 0.45),
+    0 4px 10px rgba(13, 115, 119, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.30),
+    inset 0 -2px 4px rgba(0, 80, 80, 0.3);
+  color: #052020;
+  position: relative;
+  overflow: visible;
+}
+.bnav-tab.bnav-fab:active {
+  transform: translateY(-12px) scale(0.94);
+}
+
+/* Soft outer halo behind the FAB */
+.bnav-fab-glow {
+  position: absolute;
+  inset: -10px;
+  border-radius: 999px;
+  background: radial-gradient(circle at 50% 50%, rgba(0, 229, 204, 0.45) 0%, transparent 65%);
+  filter: blur(8px);
+  opacity: 0.7;
+  pointer-events: none;
+  animation: bnavFabPulse 2.4s ease-in-out infinite;
+  z-index: -1;
+}
+@keyframes bnavFabPulse {
+  0%, 100% { opacity: 0.55; transform: scale(0.95); }
+  50%      { opacity: 0.85; transform: scale(1.08); }
+}
+
+.bnav-fab .bnav-icon {
+  width: 28px;
+  height: 28px;
+  color: #052020;
+}
+.bnav-fab .bnav-icon svg { stroke-width: 2.2; }
+
+/* FAB is always visually highlighted regardless of active state.
+ * When on scan screen, slightly intensify shadow. */
+.bnav-fab.active {
+  box-shadow:
+    0 14px 32px rgba(0, 229, 204, 0.6),
+    0 4px 10px rgba(13, 115, 119, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+.bnav-fab .bnav-tab-pill { display: none; }    /* FAB doesn't use the inset capsule */
+.bnav-fab .bnav-icon { transform: none; }      /* override scale-up active rule */
+.bnav-fab.active .bnav-icon { color: #052020; transform: none; }
+
+/* Reaction-card / journal-entry icon slot — wraps the periodic-tile component */
+.rc-icon-slot {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bnav-fab.active { box-shadow: 0 14px 32px rgba(0, 229, 204, 0.55), 0 4px 10px rgba(13, 115, 119, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.25); }
+

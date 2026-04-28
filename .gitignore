@@ -1,0 +1,35 @@
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Node (if added later)
+node_modules/
+npm-debug.log
+yarn-error.log
+package-lock.json
+yarn.lock
+
+# Build outputs
+dist/
+build/
+*.apk
+*.aab
+
+# Local dev — Claude/preview state
+.claude/launch.local.json
+.claude/scheduled_tasks.lock
+.claude/settings.local.json
+
+# Service worker artifacts on disk caches (kept the source-controlled SW)
+*.sw-cache
+
+# Logs
+*.log
+logs/
+
+# Local backup folders (we put dated backups outside the repo)
+*-backup-*/

@@ -1,0 +1,132 @@
+/* _glassOverrides.css — universal glass refresh for legacy card classes.
+ *
+ * Loaded LAST in the screens.css barrel so it can override per-screen rules.
+ * Converts solid var(--card) backgrounds throughout the app to the new glass
+ * surface (frosted blur + thin border + soft inner highlight).
+ *
+ * To roll back: remove the @import line in screens.css.
+ */
+
+/* ── Home ── */
+.stat,
+.qa {
+  background: var(--glass-bg) !important;
+  backdrop-filter: blur(var(--glass-blur)) saturate(140%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(140%);
+  border: 1px solid var(--glass-border) !important;
+  box-shadow: var(--glass-shadow);
+  border-radius: 22px !important;
+}
+
+.icon-btn {
+  background: var(--glass-bg) !important;
+  backdrop-filter: blur(var(--glass-blur)) saturate(140%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(140%);
+  border: 1px solid var(--glass-border) !important;
+}
+
+/* ── Library ── */
+.lib-search,
+.lib-el {
+  background: var(--glass-bg) !important;
+  backdrop-filter: blur(var(--glass-blur)) saturate(140%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(140%);
+  border: 1px solid var(--glass-border) !important;
+  box-shadow: var(--glass-shadow);
+  border-radius: 18px !important;
+}
+.filter-tab {
+  background: var(--glass-bg) !important;
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border) !important;
+}
+.filter-tab.active {
+  background: var(--accent) !important;
+  color: #052020 !important;
+  border-color: transparent !important;
+  box-shadow: 0 6px 18px rgba(0,229,204,0.35) !important;
+}
+
+/* ── Element Detail ── */
+.edet-back,
+.edet-fav {
+  background: var(--glass-bg) !important;
+  backdrop-filter: blur(var(--glass-blur)) saturate(140%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(140%);
+  border: 1px solid var(--glass-border) !important;
+}
+.edet-box {
+  background: var(--glass-bg) !important;
+  backdrop-filter: blur(var(--glass-blur)) saturate(140%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(140%);
+  border: 1px solid var(--glass-border) !important;
+  box-shadow: var(--glass-shadow);
+  border-radius: 22px !important;
+}
+.edet-prop {
+  background: rgba(255,255,255,0.025) !important;
+  border: 1px solid var(--glass-border) !important;
+}
+
+/* ── Journal ── */
+.jr-entry {
+  background: var(--glass-bg) !important;
+  backdrop-filter: blur(var(--glass-blur)) saturate(140%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(140%);
+  border: 1px solid var(--glass-border) !important;
+  box-shadow: var(--glass-shadow);
+  border-radius: 18px !important;
+}
+.jr-badge {
+  background: var(--glass-bg-strong) !important;
+  border: 1px solid var(--glass-border) !important;
+  color: var(--accent) !important;
+}
+
+/* ── Reaction screen pills + arrow ── */
+.rxn-cta-arrow { color: var(--accent); }
+
+/* ── Element chip (home horizontal scroller) ── */
+.el-chip {
+  background: var(--glass-bg) !important;
+  backdrop-filter: blur(var(--glass-blur)) saturate(140%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(140%);
+  border: 1px solid var(--glass-border) !important;
+  border-radius: 18px !important;
+}
+
+/* ── Reaction card (home vertical scroller) ── */
+.rxn-card {
+  background: var(--glass-bg) !important;
+  backdrop-filter: blur(var(--glass-blur)) saturate(140%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(140%);
+  border: 1px solid var(--glass-border) !important;
+  box-shadow: var(--glass-shadow);
+  border-radius: 22px !important;
+}
+
+/* ── Toast (info flash) ── */
+.toast {
+  background: var(--glass-bg-strong);
+  backdrop-filter: blur(var(--glass-blur)) saturate(140%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(140%);
+  border: 1px solid var(--glass-border);
+}
+
+/* ── Type weight rebalance (Geist sits well lighter) ── */
+.lib-title,
+.jr-title { font-weight: 600 !important; letter-spacing: -0.02em !important; }
+
+.daily-title { font-weight: 600 !important; letter-spacing: -0.02em !important; }
+.stat-val    { font-weight: 700 !important; letter-spacing: -0.02em !important; }
+.trainer-name { font-weight: 600 !important; letter-spacing: -0.01em !important; }
+
+/* Caps + small-meta need slightly tighter weight in Geist */
+.trainer-hi,
+.daily-chip,
+.sec-title em,
+.stat-lbl,
+.jr-date,
+.edet-box-t,
+.lib-sub { font-weight: 500 !important; }

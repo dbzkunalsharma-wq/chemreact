@@ -1,0 +1,136 @@
+/* library.css — element library/grid screen.
+ * SAFE TO REPLACE: only scopes inside #screen-library + .lib-* / .filter-*.
+ */
+
+#screen-library { background: var(--dark); }
+
+.lib-top { padding: calc(40px + var(--safe-t)) 20px 4px; }
+.lib-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 14px;
+}
+.lib-title { font-size: 26px; font-weight: 800; letter-spacing: -0.6px; }
+.lib-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.lib-count {
+  font-size: 11px;
+  color: var(--accent);
+  background: rgba(0, 229, 204, 0.08);
+  padding: 5px 10px;
+  border-radius: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  border: 1px solid rgba(0, 229, 204, 0.2);
+}
+
+.lib-search {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 11px 14px;
+  margin-bottom: 12px;
+  transition: border-color 0.2s;
+}
+.lib-search:focus-within { border-color: rgba(0, 229, 204, 0.4); }
+.lib-search svg {
+  width: 16px; height: 16px;
+  stroke: var(--muted);
+  fill: none; stroke-width: 2; stroke-linecap: round;
+  flex-shrink: 0;
+}
+.lib-search input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text);
+  font-size: 14px;
+  font-family: inherit;
+}
+.lib-search input::placeholder { color: var(--muted2); }
+
+.filter-row {
+  display: flex; gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 10px;
+  scrollbar-width: none;
+}
+.filter-row::-webkit-scrollbar { display: none; }
+.filter-tab {
+  flex-shrink: 0;
+  padding: 8px 14px;
+  border-radius: 20px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text2);
+  cursor: pointer;
+  transition: all 0.2s;
+  letter-spacing: 0.2px;
+}
+.filter-tab.active {
+  background: linear-gradient(135deg, var(--teal), var(--accent));
+  border-color: var(--accent);
+  color: white;
+  box-shadow: 0 4px 14px rgba(0, 229, 204, 0.3);
+}
+.filter-tab:active { transform: scale(0.95); }
+
+.lib-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  padding: 8px 20px calc(120px + var(--safe-b));
+}
+.lib-el {
+  background: var(--card);
+  border-radius: 16px;
+  padding: 14px 10px 12px;
+  display: flex; flex-direction: column; align-items: center;
+  gap: 3px;
+  border: 1px solid var(--line);
+  cursor: pointer;
+  transition: transform 0.15s, border-color 0.2s;
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 1 / 1.12;
+}
+.lib-el::before {
+  content: "";
+  position: absolute; inset: 0;
+  background: radial-gradient(circle at 50% 0%, var(--el-color, transparent) 0%, transparent 60%);
+  opacity: 0.12;
+  pointer-events: none;
+}
+.lib-el:active { transform: scale(0.95); }
+.lib-el-top {
+  width: 100%;
+  display: flex; justify-content: space-between; align-items: center;
+  position: relative;
+}
+.lib-el-num { font-size: 10px; color: var(--muted); font-weight: 700; font-variant-numeric: tabular-nums; }
+.lib-el-mass { font-size: 9px; color: var(--muted2); font-variant-numeric: tabular-nums; }
+.lib-el-sym {
+  font-size: 30px; font-weight: 900;
+  margin-top: 4px;
+  letter-spacing: -1px;
+  position: relative;
+}
+.lib-el-name {
+  font-size: 11px;
+  color: var(--text2);
+  text-align: center;
+  font-weight: 600;
+  margin-top: 2px;
+}
+.lib-el.locked { opacity: 0.45; }
+.lib-el.locked::after {
+  content: "🔒";
+  position: absolute;
+  top: 8px; right: 8px;
+  font-size: 10px;
+  opacity: 0.6;
+}
