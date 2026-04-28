@@ -276,6 +276,120 @@
 .toast-error   .toast-ico { background: var(--danger);  color: var(--on-danger); }
 
 /* ════════════════════════════════════════════════
+   CYBERPUNK GLITCH — error/warn toasts
+   ════════════════════════════════════════════════
+   Effect layers, in order:
+     1. Message gets two RGB-offset ghost copies (magenta + cyan) via
+        ::before / ::after that read [data-text]. Random horizontal slices
+        clip-path the ghosts so chunks of the text shift each step.
+     2. Whole toast gets a faint scanline overlay (CRT vibe) + slow scroll.
+     3. Error toast gets a brief filter-flicker so it feels like the system
+        took damage. Warn is the same effect, dialed back ~40%.
+   Hex literals are intentional — magenta/cyan glitch ghosts are part of the
+   cyberpunk visual identity and don't belong in the global token palette. */
+
+.toast-msg.glitch {
+  position: relative;
+  display: inline-block;
+}
+.toast-msg.glitch::before,
+.toast-msg.glitch::after {
+  content: attr(data-text);
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  font: inherit;
+  letter-spacing: inherit;
+  mix-blend-mode: screen;
+  text-shadow: 0 0 1px currentColor;
+}
+.toast-error .toast-msg.glitch::before {
+  color: #ff1f7a;
+  animation: glitch-slice-mag 1.6s steps(1) infinite;
+}
+.toast-error .toast-msg.glitch::after {
+  color: #00e5cc;
+  animation: glitch-slice-cyan 1.6s steps(1) infinite;
+}
+/* Warn = milder palette + slower */
+.toast-warn .toast-msg.glitch::before {
+  color: #ffd166;
+  animation: glitch-slice-mag 2.4s steps(1) infinite;
+  opacity: 0.75;
+}
+.toast-warn .toast-msg.glitch::after {
+  color: #00e5cc;
+  animation: glitch-slice-cyan 2.4s steps(1) infinite;
+  opacity: 0.75;
+}
+
+@keyframes glitch-slice-mag {
+  0%, 100% { transform: translate(0, 0);    clip-path: inset(0 0 95% 0); }
+  10%      { transform: translate(-1.5px, 0); clip-path: inset(0 0 60% 0); }
+  20%      { transform: translate(-2px, 1px); clip-path: inset(35% 0 50% 0); }
+  35%      { transform: translate(1px, -1px); clip-path: inset(60% 0 25% 0); }
+  50%      { transform: translate(-1px, 0);  clip-path: inset(15% 0 75% 0); }
+  65%      { transform: translate(2px, 1px); clip-path: inset(80% 0 5% 0); }
+  80%      { transform: translate(-2px, 0);  clip-path: inset(5% 0 85% 0); }
+}
+@keyframes glitch-slice-cyan {
+  0%, 100% { transform: translate(0, 0);    clip-path: inset(95% 0 0 0); }
+  10%      { transform: translate(2px, 0);   clip-path: inset(70% 0 5% 0); }
+  20%      { transform: translate(1px, -1px); clip-path: inset(40% 0 35% 0); }
+  35%      { transform: translate(-1px, 1px); clip-path: inset(20% 0 65% 0); }
+  50%      { transform: translate(2px, 0);   clip-path: inset(80% 0 10% 0); }
+  65%      { transform: translate(-2px, -1px); clip-path: inset(5% 0 75% 0); }
+  80%      { transform: translate(1px, 1px); clip-path: inset(55% 0 30% 0); }
+}
+
+/* CRT scanline overlay — subtle, only on error/warn. */
+.toast-error::after,
+.toast-warn::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent 3px,
+    rgba(255, 31, 122, 0.08) 3px,
+    rgba(255, 31, 122, 0.08) 4px
+  );
+  mix-blend-mode: overlay;
+  animation: glitch-scanlines 2.4s linear infinite;
+  opacity: 0.7;
+}
+.toast-warn::after {
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent 4px,
+    rgba(255, 209, 102, 0.06) 4px,
+    rgba(255, 209, 102, 0.06) 5px
+  );
+  opacity: 0.5;
+}
+@keyframes glitch-scanlines {
+  from { transform: translateY(0); }
+  to   { transform: translateY(8px); }
+}
+
+/* Filter flicker on the whole toast — "system took damage" feel.
+   Uses filter: only — won't conflict with the existing opacity/transform
+   transition that drives toast-in / toast-out. */
+.toast-error.toast-in { animation: glitch-flicker 1.4s steps(10) infinite; }
+.toast-warn.toast-in  { animation: glitch-flicker 2.2s steps(10) infinite; }
+@keyframes glitch-flicker {
+  0%, 12%, 30%, 60%, 100% { filter: none; }
+  6%   { filter: hue-rotate(8deg) brightness(1.18) saturate(1.15); }
+  16%  { filter: hue-rotate(-12deg) brightness(0.92); }
+  46%  { filter: brightness(1.08) saturate(1.2); }
+  74%  { filter: hue-rotate(6deg) brightness(0.95); }
+}
+
+/* ════════════════════════════════════════════════
    DEV PANEL
 ════════════════════════════════════════════════ */
 .dev-panel {

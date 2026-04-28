@@ -24,9 +24,13 @@ export function showToast(message, type = 'info') {
   const t = document.createElement('div');
   t.className = `toast toast-${type}`;
   t.setAttribute('role', 'status');
+  // Glitch layers for error/warn toasts read the text via [data-text] —
+  // CSS ::before / ::after re-render the same string with RGB offset.
+  const isGlitch = type === 'error' || type === 'warn';
+  const safe = escapeHtml(String(message));
   t.innerHTML = `
     <span class="toast-ico">${iconFor(type)}</span>
-    <span class="toast-msg">${escapeHtml(String(message))}</span>
+    <span class="toast-msg${isGlitch ? ' glitch' : ''}"${isGlitch ? ` data-text="${safe}"` : ''}>${safe}</span>
   `;
   host.appendChild(t);
 
