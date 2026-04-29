@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ChemReact — Orbital Demo</title>
+<style>
+  html, body { margin: 0; padding: 0; height: 100%; background: #080C14; color: #DCEAFF;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace; overflow: hidden; }
+  #stage { position: fixed; inset: 0; }
+  #panel { position: fixed; top: 12px; left: 12px; background: rgba(10,18,30,0.78);
+    border: 1px solid #2a3b55; border-radius: 10px; padding: 10px 12px; min-width: 220px;
+    backdrop-filter: blur(6px); }
+  #panel h1 { font-size: 13px; margin: 0 0 8px; letter-spacing: 0.08em; color: #6FE7FF; }
+  #panel label { display: block; font-size: 11px; opacity: 0.7; margin-top: 6px; }
+  #panel select { width: 100%; background: #0d1828; color: #DCEAFF; border: 1px solid #2a3b55;
+    padding: 6px 8px; border-radius: 6px; font-family: inherit; font-size: 12px; }
+  #info { font-size: 11px; line-height: 1.4; margin-top: 10px; opacity: 0.85; }
+  #info b { color: #6FE7FF; }
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<div id="panel">
+  <h1>ORBITAL VIEWER</h1>
+  <label for="el">Element</label>
+  <select id="el"></select>
+  <div id="info"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+<script type="module">
+  import { createOrbitalModel, parseConfig } from './index.js';
+
+  const elementsURL = '../../data/elements.json';
+
+  // ---------- scene ----------
+  const stage = document.getElementById('stage');
+  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(2, window.devicePixelRatio));
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  stage.appendChild(renderer.domElement);
+
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 100);
+  camera.position.set(0, 0.6, 5.2);
+
+  const hemi = new THREE.HemisphereLight(0x88aaff, 0x102030, 0.7);
+  scene.add(hemi);
+  const dir = new THREE.DirectionalLight(0xffffff, 0.6);
+  dir.position.set(2, 3, 4);
+  scene.add(dir);
+
+  // Subtle backdrop ring so depth is readable.
+  const ringGeo = new THREE.RingGeometry(2.6, 2.65, 96);
+  const ringMat = new THREE.MeshBasicMaterial({ color: 0x1f3556, transparent: true, opacity: 0.4, side: THREE.DoubleSide });
+  const backRing = new THREE.Mesh(ringGeo, ringMat);
+  backRing.rotation.x = Math.PI / 2;
+  scene.add(backRing);
+
+  window.addEventListener('resize', () => {
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+  });
+
+  // ---------- model swap ----------
+  let current = null;
+  function swap(element) {
+    if (current) { scene.remove(current.group); current.dispose(); current = null; }
+    current = createOrbitalModel(element);
+    scene.add(current.group);
+
+    const shells = parseConfig(element.config)
+      .map((s) => `${s.n}${s.l}<sup>${s.count}</sup>`).join(' ');
+    document.getElementById('info').innerHTML =
+      `<b>${element.name}</b> (Z=${element.z})<br>` +
+      `Config: ${shells}<br>` +
+      `Category: ${element.category}`;
+  }
+
+  // ---------- load elements + populate select ----------
+  fetch(elementsURL).then((r) => r.json()).then((db) => {
+    const select = document.getElementById('el');
+    const symbols = Object.keys(db).sort((a, b) => db[a].z - db[b].z);
+    for (const sym of symbols) {
+      const opt = document.createElement('option');
+      opt.value = sym;
+      opt.textContent = `${sym.padEnd(2, ' ')}  Z=${db[sym].z}  ${db[sym].name}`;
+      select.appendChild(opt);
+    }
+    select.addEventListener('change', () => swap(db[select.value]));
+    select.value = 'C';
+    swap(db.C);
+  }).catch((err) => {
+    document.getElementById('info').textContent = 'Failed to load elements.json: ' + err.message;
+  });
+
+  // ---------- frame loop ----------
+  let last = performance.now();
+  function frame(now) {
+    const dt = Math.min(0.05, (now - last) / 1000);
+    last = now;
+    if (current) current.update(dt);
+    renderer.render(scene, camera);
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+</script>
+</body>
+</html>
