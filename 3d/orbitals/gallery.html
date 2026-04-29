@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Orbital Gallery — file:// safe preview</title>
+<style>
+  :root {
+    --bg:     #080C14;
+    --bg2:    #02060a;
+    --card:   rgba(20, 30, 45, 0.6);
+    --line:   rgba(111, 231, 255, 0.18);
+    --accent: #6FE7FF;
+    --text:   #dffaf3;
+    --muted:  rgba(223, 250, 243, 0.6);
+  }
+  html, body { margin: 0; min-height: 100%; background: var(--bg); color: var(--text);
+               font: 13px/1.4 ui-monospace, "JetBrains Mono", Consolas, monospace; }
+  body { padding-bottom: 24px; }
+  h1.page { margin: 0; padding: 18px 18px 6px; font-size: 14px;
+            letter-spacing: 1.8px; text-transform: uppercase; color: var(--accent); }
+  p.page-sub { margin: 0; padding: 0 18px 14px; font-size: 11px; color: var(--muted); }
+
+  .grid-top { display: grid; grid-template-columns: repeat(4, 1fr);
+              gap: 12px; padding: 4px 16px 8px; }
+  @media (max-width: 760px) { .grid-top { grid-template-columns: repeat(2, 1fr); } }
+
+  .card { background: var(--card); border: 1px solid var(--line);
+          border-radius: 12px; padding: 12px;
+          display: flex; flex-direction: column; gap: 8px; }
+  .card canvas { display: block; width: 100%; height: 200px;
+                 background: var(--bg2); border-radius: 8px; }
+  .card h2 { margin: 0; font-size: 14px; letter-spacing: 1.6px; color: var(--accent); }
+  .card p { margin: 0; font-size: 11px; color: var(--muted); line-height: 1.45; }
+
+  .big-wrap { padding: 0 16px; }
+  .big-card .controls { display: flex; gap: 12px; align-items: center;
+                        margin: 6px 0 10px; flex-wrap: wrap; }
+  .big-card label { font-size: 11px; letter-spacing: 1.6px;
+                    text-transform: uppercase; color: var(--accent); }
+  .big-card select { background: rgba(8, 12, 20, 0.9);
+                     border: 1px solid rgba(111, 231, 255, 0.3);
+                     color: var(--text); font: inherit; font-size: 13px;
+                     padding: 6px 10px; border-radius: 4px; }
+  .big-card .info { font-size: 12px; color: var(--muted); }
+  .big-card canvas { display: block; width: 100%; height: 380px;
+                     background: var(--bg2); border-radius: 8px; }
+
+  #err { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+         z-index: 100; max-width: 560px;
+         background: rgba(60, 20, 30, 0.95);
+         border: 1px solid #ff5577; color: #ffbbcc;
+         padding: 20px; border-radius: 8px;
+         font: 13px/1.55 ui-monospace, monospace;
+         white-space: pre-wrap; display: none; }
+  #err.visible { display: block; }
+  #err h2 { margin: 0 0 8px; color: #ff5577; font-size: 14px; }
+</style>
+</head>
+<body>
+
+<h1 class="page">Orbital Gallery</h1>
+<p class="page-sub">No server needed — open this file directly. Top row: each subshell type alone. Bottom: a full atom assembled from its electron configuration.</p>
+
+<div class="grid-top">
+  <div class="card">
+    <canvas id="c-s"></canvas>
+    <h2>s</h2>
+    <p>Single sphere — spherically symmetric. Holds 2 electrons.</p>
+  </div>
+  <div class="card">
+    <canvas id="c-p"></canvas>
+    <h2>p</h2>
+    <p>Three perpendicular dumbbells (px, py, pz). Holds 6 electrons.</p>
+  </div>
+  <div class="card">
+    <canvas id="c-d"></canvas>
+    <h2>d</h2>
+    <p>Four cloverleaf lobes plus the dz² ring + lobe. Holds 10 electrons.</p>
+  </div>
+  <div class="card">
+    <canvas id="c-f"></canvas>
+    <h2>f</h2>
+    <p>Eight lobes pointing into the octants. Holds 14 electrons.</p>
+  </div>
+</div>
+
+<div class="big-wrap">
+  <div class="card big-card">
+    <h2 style="margin-top:0;">Assembled Atom</h2>
+    <div class="controls">
+      <label for="el-pick">Element:</label>
+      <select id="el-pick">
+        <option value="H">Hydrogen (H) — 1s1</option>
+        <option value="He">Helium (He) — 1s2</option>
+        <option value="C">Carbon (C) — 1s2 2s2 2p2</option>
+        <option value="O">Oxygen (O) — 1s2 2s2 2p4</option>
+        <option value="Ne">Neon (Ne) — 1s2 2s2 2p6</option>
+        <option value="Na">Sodium (Na) — [Ne]3s1</option>
+        <option value="Fe" selected>Iron (Fe) — [Ar]3d6 4s2</option>
+        <option value="Cu">Copper (Cu) — [Ar]3d10 4s1</option>
+        <option value="Au">Gold (Au) — [Xe]4f14 5d10 6s1</option>
+      </select>
+      <span class="info" id="big-info">—</span>
+    </div>
+    <canvas id="c-big"></canvas>
+  </div>
+</div>
+
+<div id="err"><h2>Error</h2><div id="err-msg"></div></div>
+
+<script>
+  // ── Error surfacing
+  const errEl  = document.getElementById('err');
+  const errMsg = document.getElementById('err-msg');
+  function showError(title, msg) {
+    errEl.querySelector('h2').textContent = title;
+    errMsg.textContent = msg;
+    errEl.classList.add('visible');
+  }
+  window.addEventListener('error', function (e) {
+    showError('JavaScript Error',
+      String(e.message || e) + '\n' + ((e.error && e.error.stack) || ''));
+  });
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"
+        onerror="showError('CDN load failed','three.min.js could not be fetched from cdn.jsdelivr.net. The gallery needs internet on first open. Once cached the file:// load works offline.')"></script>
+
+<script>
+// ─────────────────────────────────────────────────────────────────────
+// gallery.html runs under file:// — NO ES modules. All logic inlined.
+// Mirrors the structure of:
+//   3d/orbitals/electronConfig.js    (parseConfig, subshellCapacity, NOBLE_CORES)
+//   3d/orbitals/orbitalShapes.js     (buildSubshellGroup)
+//   3d/orbitals/orbitalModel.js      (createOrbitalModel)
+// Keep them in sync if you edit either side.
+// ─────────────────────────────────────────────────────────────────────
+
+if (!window.THREE) {
+  showError('THREE not available',
+    'window.THREE is undefined. The three.min.js <script> tag failed (no internet on first open?).');
+} else {
+(function () {
+  const THREE = window.THREE;
+
+  // ─── Inlined ELEMENTS — small subset so no fetch() is needed.
+  const ELEMENTS = {
+    H:  { name: 'Hydrogen', config: '1s1',                      cpkColor: '#FFFFFF' },
+    He: { name: 'Helium',   config: '1s2',                      cpkColor: '#D9FFFF' },
+    C:  { name: 'Carbon',   config: '1s2 2s2 2p2',              cpkColor: '#909090' },
+    O:  { name: 'Oxygen',   config: '1s2 2s2 2p4',              cpkColor: '#FF0D0D' },
+    Ne: { name: 'Neon',     config: '1s2 2s2 2p6',              cpkColor: '#B3E3F5' },
+    Na: { name: 'Sodium',   config: '[Ne]3s1',                  cpkColor: '#AB5CF2' },
+    Fe: { name: 'Iron',     config: '[Ar]3d6 4s2',              cpkColor: '#E06633' },
+    Cu: { name: 'Copper',   config: '[Ar]3d10 4s1',             cpkColor: '#C88033' },
+    Au: { name: 'Gold',     config: '[Xe]4f14 5d10 6s1',        cpkColor: '#FFD123' }
+  };
+
+  // ─── electronConfig (mirror)
+  const NOBLE_CORES = {
+    He: '1s2',
+    Ne: '1s2 2s2 2p6',
+    Ar: '1s2 2s2 2p6 3s2 3p6',
+    Kr: '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p6',
+    Xe: '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p6 4d10 5s2 5p6',
+    Rn: '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p6 4d10 4f14 5s2 5p6 5d10 6s2 6p6'
+  };
+  const L_PRIORITY = { s: 0, p: 1, d: 2, f: 3 };
+  const SUBSHELL_CAPACITY = { s: 2, p: 6, d: 10, f: 14 };
+  const TOKEN_RE = /^(\d)([spdf])(\d{1,2})$/;
+  const NOBLE_RE = /\[(He|Ne|Ar|Kr|Xe|Rn)\]/g;
+  function subshellCapacity(l) { return SUBSHELL_CAPACITY[l]; }
+  function parseConfig(input) {
+    if (!input || typeof input !== 'string') return [];
+    let s = input.trim().replace(NOBLE_RE, function (_, sym) { return NOBLE_CORES[sym] + ' '; });
+    s = s.replace(/\s+/g, ' ').trim();
+    if (!s) return [];
+    const tokens = s.split(' ').filter(Boolean);
+    const shells = [];
+    for (let i = 0; i < tokens.length; i++) {
+      const m = tokens[i].match(TOKEN_RE);
+      if (!m) continue;
+      shells.push({ n: parseInt(m[1], 10), l: m[2], count: parseInt(m[3], 10) });
+    }
+    shells.sort(function (a, b) { return a.n - b.n || L_PRIORITY[a.l] - L_PRIORITY[b.l]; });
+    return shells;
+  }
+
+  // ─── orbitalShapes (mirror)
+  const _yAxis = new THREE.Vector3(0, 1, 0);
+  function buildSubshellGroup(l, material) {
+    const root = new THREE.Group();
+    const ownedGeos = [];
+    let dumbGeo = null;
+    function makeDumbbell(axis, scale) {
+      if (scale === undefined) scale = 1;
+      if (!dumbGeo) {
+        dumbGeo = new THREE.SphereGeometry(0.18, 16, 12);
+        ownedGeos.push(dumbGeo);
+      }
+      const g = new THREE.Group();
+      const top = new THREE.Mesh(dumbGeo, material);
+      top.scale.set(0.7, 1.4, 0.7); top.position.set(0, 0.5, 0);
+      const bot = new THREE.Mesh(dumbGeo, material);
+      bot.scale.set(0.7, 1.4, 0.7); bot.position.set(0, -0.5, 0);
+      const q = new THREE.Quaternion();
+      q.setFromUnitVectors(_yAxis, axis.clone().normalize());
+      g.quaternion.copy(q);
+      if (scale !== 1) g.scale.setScalar(scale);
+      g.add(top); g.add(bot);
+      return g;
+    }
+    if (l === 's') {
+      const geo = new THREE.SphereGeometry(0.55, 24, 16);
+      ownedGeos.push(geo);
+      root.add(new THREE.Mesh(geo, material));
+    } else if (l === 'p') {
+      root.add(makeDumbbell(new THREE.Vector3(1, 0, 0)));
+      root.add(makeDumbbell(new THREE.Vector3(0, 1, 0)));
+      root.add(makeDumbbell(new THREE.Vector3(0, 0, 1)));
+    } else if (l === 'd') {
+      for (let i = 0; i < 4; i++) {
+        const a = i * Math.PI / 2 + Math.PI / 4;
+        root.add(makeDumbbell(new THREE.Vector3(Math.cos(a), Math.sin(a), 0)));
+      }
+      const ringGeo = new THREE.TorusGeometry(0.5, 0.12, 12, 36);
+      ownedGeos.push(ringGeo);
+      const ring = new THREE.Mesh(ringGeo, material);
+      ring.rotation.x = Math.PI / 2;
+      root.add(ring);
+      root.add(makeDumbbell(new THREE.Vector3(0, 0, 1), 0.7));
+    } else if (l === 'f') {
+      const corners = [
+        [ 1,  1,  1], [ 1,  1, -1], [ 1, -1,  1], [ 1, -1, -1],
+        [-1,  1,  1], [-1,  1, -1], [-1, -1,  1], [-1, -1, -1]
+      ];
+      for (let i = 0; i < corners.length; i++) {
+        const c = corners[i];
+        root.add(makeDumbbell(new THREE.Vector3(c[0], c[1], c[2]).normalize()));
+      }
+    }
+    root.userData._ownedGeos = ownedGeos;
+    return root;
+  }
+
+  // ─── orbitalModel (mirror)
+  const L_OPACITY    = { s: 0.55, p: 0.45, d: 0.38, f: 0.32 };
+  const L_SPIN_AXIS  = {
+    s: new THREE.Vector3(0,   1,   0),
+    p: new THREE.Vector3(1,   0.3, 0),
+    d: new THREE.Vector3(0.4, 1,   0.2),
+    f: new THREE.Vector3(0.8, 0.2, 0.6)
+  };
+  const L_SPIN_MULT  = { s: 1.0, p: 1.3, d: 1.6, f: 1.9 };
+  const L_TILT_PHASE = { s: 0,   p: 0.7, d: 1.4, f: 2.1 };
+
+  function createOrbitalModel(element, opts) {
+    opts = opts || {};
+    const config = (element && element.config) || '1s1';
+    const shells = parseConfig(config);
+    const colorHex = opts.color || (element && element.cpkColor) || (element && element.color) || '#6FE7FF';
+    const colorObj = new THREE.Color(colorHex);
+
+    const root = new THREE.Group();
+    const ownedGeos = [];
+    const ownedMats = [];
+    const subshellEntries = [];
+
+    const nucGeo = new THREE.SphereGeometry(0.22, 24, 16);
+    ownedGeos.push(nucGeo);
+    const nucMat = new THREE.MeshBasicMaterial({
+      color: colorObj.clone().multiplyScalar(1.4),
+      transparent: true, opacity: 0.95,
+      blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide
+    });
+    ownedMats.push(nucMat);
+    const nucleus = new THREE.Mesh(nucGeo, nucMat);
+    root.add(nucleus);
+
+    for (let i = 0; i < shells.length; i++) {
+      const shell = shells[i];
+      const cap = subshellCapacity(shell.l) || 1;
+      const fillRatio = Math.min(1, shell.count / cap);
+      const baseOpacity = (L_OPACITY[shell.l] || 0.4) * (0.5 + fillRatio * 0.5);
+      const mat = new THREE.MeshBasicMaterial({
+        color: colorObj.clone(),
+        transparent: true, opacity: baseOpacity,
+        blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide
+      });
+      ownedMats.push(mat);
+
+      const sub = buildSubshellGroup(shell.l, mat);
+      const radius = 0.45 + (shell.n - 1) * 0.55;
+      sub.scale.setScalar(radius);
+      const tilt = (shell.n + (L_TILT_PHASE[shell.l] || 0)) * 0.12;
+      sub.rotation.set(tilt * 0.7, tilt * 1.1, tilt * 0.5);
+      if (sub.userData && sub.userData._ownedGeos) {
+        ownedGeos.push.apply(ownedGeos, sub.userData._ownedGeos);
+      }
+      const axis  = L_SPIN_AXIS[shell.l].clone().normalize();
+      const speed = 1.4 * Math.pow(0.55, shell.n - 1) * (L_SPIN_MULT[shell.l] || 1);
+      subshellEntries.push({ group: sub, axis: axis, speed: speed, n: shell.n, l: shell.l, count: shell.count });
+      root.add(sub);
+    }
+
+    let nucPulseT = 0, driftT = 0;
+    const _spinQuat = new THREE.Quaternion();
+    function update(dt) {
+      if (typeof dt !== 'number' || !isFinite(dt) || dt <= 0) return;
+      nucPulseT += dt; driftT += dt;
+      nucleus.scale.setScalar(1 + Math.sin(nucPulseT * 2.4) * 0.08);
+      for (let i = 0; i < subshellEntries.length; i++) {
+        const s = subshellEntries[i];
+        _spinQuat.setFromAxisAngle(s.axis, s.speed * dt);
+        s.group.quaternion.multiply(_spinQuat);
+      }
+      root.position.y = Math.sin(driftT * 0.4) * 0.08;
+    }
+    function dispose() {
+      for (let i = 0; i < ownedGeos.length; i++) { try { ownedGeos[i].dispose(); } catch (_) {} }
+      for (let i = 0; i < ownedMats.length; i++) { try { ownedMats[i].dispose(); } catch (_) {} }
+      while (root.children.length > 0) root.remove(root.children[0]);
+    }
+    return { group: root, update: update, dispose: dispose, shells: subshellEntries };
+  }
+
+  // ─── Helper: standalone subshell viewer for one canvas + l type.
+  function makeSubshellViewer(canvas, l) {
+    const w = canvas.clientWidth || 200;
+    const h = canvas.clientHeight || 200;
+    const renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: false });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.setSize(w, h, false);
+    renderer.setClearColor(0x02060A);
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(45, w / h, 0.1, 100);
+    camera.position.set(0, 0, 4);
+    const mat = new THREE.MeshBasicMaterial({
+      color: new THREE.Color('#6FE7FF'),
+      transparent: true, opacity: 0.55,
+      blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide
+    });
+    const group = buildSubshellGroup(l, mat);
+    scene.add(group);
+    const axis  = L_SPIN_AXIS[l].clone().normalize();
+    const speed = (L_SPIN_MULT[l] || 1) * 0.6;
+    const _q = new THREE.Quaternion();
+    let last = performance.now();
+    function tick(now) {
+      const dt = Math.min(0.1, (now - last) / 1000);
+      last = now;
+      _q.setFromAxisAngle(axis, speed * dt);
+      group.quaternion.multiply(_q);
+      renderer.render(scene, camera);
+      requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+  }
+
+  makeSubshellViewer(document.getElementById('c-s'), 's');
+  makeSubshellViewer(document.getElementById('c-p'), 'p');
+  makeSubshellViewer(document.getElementById('c-d'), 'd');
+  makeSubshellViewer(document.getElementById('c-f'), 'f');
+
+  // ─── Big assembled atom viewer.
+  const bigCanvas = document.getElementById('c-big');
+  const bigW = bigCanvas.clientWidth || 800;
+  const bigH = bigCanvas.clientHeight || 380;
+  const bigRenderer = new THREE.WebGLRenderer({ canvas: bigCanvas, antialias: true, alpha: false });
+  bigRenderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  bigRenderer.setSize(bigW, bigH, false);
+  bigRenderer.setClearColor(0x02060A);
+  const bigScene  = new THREE.Scene();
+  const bigCamera = new THREE.PerspectiveCamera(45, bigW / bigH, 0.1, 100);
+  bigCamera.position.set(0, 0, 9);
+
+  let currentModel = null;
+  function setBigElement(key) {
+    if (currentModel) { bigScene.remove(currentModel.group); currentModel.dispose(); }
+    const elData = ELEMENTS[key];
+    currentModel = createOrbitalModel(elData);
+    bigScene.add(currentModel.group);
+    document.getElementById('big-info').textContent =
+      elData.name + ' • ' + elData.config + ' • shells: ' + currentModel.shells.length;
+  }
+  setBigElement('Fe');
+  document.getElementById('el-pick').addEventListener('change', function (e) {
+    setBigElement(e.target.value);
+  });
+
+  // Resize the big canvas when the window changes (the small ones are CSS-fixed).
+  window.addEventListener('resize', function () {
+    const nw = bigCanvas.clientWidth, nh = bigCanvas.clientHeight;
+    if (nw && nh) {
+      bigRenderer.setSize(nw, nh, false);
+      bigCamera.aspect = nw / nh;
+      bigCamera.updateProjectionMatrix();
+    }
+  });
+
+  let bigLast = performance.now();
+  function bigTick(now) {
+    const dt = Math.min(0.1, (now - bigLast) / 1000);
+    bigLast = now;
+    if (currentModel) currentModel.update(dt);
+    const t = now * 0.00018;
+    bigCamera.position.x = Math.sin(t) * 9;
+    bigCamera.position.z = Math.cos(t) * 9;
+    bigCamera.lookAt(0, 0, 0);
+    bigRenderer.render(bigScene, bigCamera);
+    requestAnimationFrame(bigTick);
+  }
+  requestAnimationFrame(bigTick);
+})();
+}
+</script>
+
+</body>
+</html>

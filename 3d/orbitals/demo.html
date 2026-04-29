@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Orbital Demo — element picker</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #080C14; color: #6FE7FF;
+               font: 13px/1.4 ui-monospace, "JetBrains Mono", Consolas, monospace;
+               overflow: hidden; }
+  canvas#stage { display: block; }
+  .panel { position: fixed; top: 12px; left: 12px; z-index: 10;
+           background: rgba(8, 12, 20, 0.85);
+           border: 1px solid rgba(111, 231, 255, 0.25);
+           border-radius: 8px; padding: 12px;
+           min-width: 240px; max-width: 280px;
+           backdrop-filter: blur(8px); }
+  .panel h1 { margin: 0 0 8px; font-size: 13px; letter-spacing: 1.6px;
+              text-transform: uppercase; color: #6FE7FF; }
+  select { background: rgba(8, 12, 20, 0.9);
+           border: 1px solid rgba(111, 231, 255, 0.3);
+           color: #dffaf3; font: inherit; font-size: 12px;
+           padding: 6px 8px; border-radius: 4px; width: 100%; }
+  .info { margin-top: 10px; font-size: 11px; opacity: 0.78; line-height: 1.55; }
+  .info b { color: #6FE7FF; }
+  .info .shell { display: inline-block; margin-right: 8px; opacity: 0.85; }
+  #err { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+         z-index: 100; max-width: 560px;
+         background: rgba(60, 20, 30, 0.95);
+         border: 1px solid #ff5577; color: #ffbbcc;
+         padding: 20px; border-radius: 8px;
+         font: 13px/1.55 ui-monospace, monospace;
+         white-space: pre-wrap; display: none; }
+  #err.visible { display: block; }
+  #err h2 { margin: 0 0 8px; color: #ff5577; font-size: 14px; }
+</style>
+</head>
+<body>
+<canvas id="stage"></canvas>
+<div class="panel">
+  <h1>Orbital Demo</h1>
+  <select id="el-select"><option>Loading…</option></select>
+  <div class="info" id="info"></div>
+</div>
+<div id="err"><h2>Error</h2><div id="err-msg"></div></div>
+
+<script>
+  // ── Error surfacing — must run BEFORE any other script so it catches everything.
+  const errEl  = document.getElementById('err');
+  const errMsg = document.getElementById('err-msg');
+  function showError(title, msg) {
+    errEl.querySelector('h2').textContent = title;
+    errMsg.textContent = msg;
+    errEl.classList.add('visible');
+  }
+  window.addEventListener('error', (e) => {
+    showError('JavaScript Error',
+      String(e.message || e) + '\n' + ((e.error && e.error.stack) || ''));
+  });
+  window.addEventListener('unhandledrejection', (e) => {
+    const r = e.reason;
+    showError('Async / Promise Error',
+      String((r && r.stack) || (r && r.message) || r || e));
+  });
+  if (location.protocol === 'file:') {
+    showError(
+      'Cannot run via file://',
+      'This demo uses ES modules (import) and fetch() — both are blocked under the ' +
+      'file:// protocol. Serve the project root over HTTP instead.\n\n' +
+      'From the project root, in a terminal:\n' +
+      '  python -m http.server 8090\n\n' +
+      'Then open:  http://localhost:8090/3d/orbitals/demo.html\n\n' +
+      '(For a no-server preview, open gallery.html instead — it works under file://.)'
+    );
+  }
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"
+        onerror="showError('CDN load failed','Could not fetch three.min.js from cdn.jsdelivr.net. Check your internet connection / CSP.')"></script>
+
+<script type="module">
+  // Bail early if THREE didn't load.
+  if (!window.THREE) {
+    showError('THREE not available',
+      'window.THREE is undefined after the CDN <script> tag. The CDN load probably failed; ' +
+      'see the network panel.');
+    throw new Error('THREE missing');
+  }
+
+  // Dynamic import the local module — surface failure clearly.
+  let parseConfig, createOrbitalModel;
+  try {
+    const mod = await import('./index.js');
+    parseConfig        = mod.parseConfig;
+    createOrbitalModel = mod.createOrbitalModel;
+  } catch (e) {
+    showError('Module import failed',
+      'Could not load ./index.js — common causes:\n' +
+      '  • file:// protocol (modules are blocked — see top error)\n' +
+      '  • a sibling file (electronConfig / orbitalShapes / orbitalModel) has a syntax error\n' +
+      '  • the dev server is serving the wrong directory\n\n' +
+      String((e && e.stack) || e));
+    throw e;
+  }
+
+  const THREE = window.THREE;
+
+  // ── Scene setup
+  const canvas   = document.getElementById('stage');
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setClearColor(0x080C14);
+
+  const scene  = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 100);
+  camera.position.set(0, 0, 8);
+
+  let currentModel = null;
+
+  function describeShells(shells) {
+    return shells.map(s => '<span class="shell">' + s.n + s.l + s.count + '</span>').join('');
+  }
+
+  function setElement(elKey, elData) {
+    if (currentModel) {
+      scene.remove(currentModel.group);
+      currentModel.dispose();
+    }
+    currentModel = createOrbitalModel(elData);
+    scene.add(currentModel.group);
+
+    const info = document.getElementById('info');
+    info.innerHTML =
+      '<b>' + elKey + '</b> — ' + (elData.name || '?') + '<br>' +
+      'Config: ' + (elData.config || '?') + '<br>' +
+      'Shells (' + currentModel.shells.length + '): ' +
+      describeShells(currentModel.shells);
+  }
+
+  // ── Fetch elements.json
+  let elements;
+  try {
+    const res = await fetch('../../data/elements.json', { cache: 'no-store' });
+    if (!res.ok) throw new Error('HTTP ' + res.status + ' fetching elements.json');
+    elements = await res.json();
+  } catch (e) {
+    showError('Failed to load elements.json',
+      'Could not fetch  ../../data/elements.json  relative to this page.\n\n' +
+      'The demo expects to live at  3d/orbitals/demo.html  inside the project root, ' +
+      'with  data/elements.json  alongside it.\n\n' +
+      String((e && e.stack) || e));
+    throw e;
+  }
+
+  // ── Populate <select> (skip _comment-style keys and entries without config)
+  const sel = document.getElementById('el-select');
+  sel.innerHTML = '';
+  const keys = Object.keys(elements).filter(k => !k.startsWith('_') && elements[k] && elements[k].config);
+  for (const k of keys) {
+    const opt = document.createElement('option');
+    opt.value = k;
+    opt.textContent = k + ' — ' + (elements[k].name || k);
+    sel.appendChild(opt);
+  }
+  // Default to Fe if available, otherwise first.
+  const defaultKey = elements.Fe ? 'Fe' : keys[0];
+  sel.value = defaultKey;
+  setElement(defaultKey, elements[defaultKey]);
+  sel.addEventListener('change', () => setElement(sel.value, elements[sel.value]));
+
+  // ── Resize
+  window.addEventListener('resize', () => {
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+  });
+
+  // ── Render loop
+  let last = performance.now();
+  function tick(now) {
+    const dt = Math.min(0.1, (now - last) / 1000);
+    last = now;
+    if (currentModel) currentModel.update(dt);
+    // Slow camera orbit so the 3D structure reads from multiple angles.
+    const t = now * 0.00018;
+    camera.position.x = Math.sin(t) * 8;
+    camera.position.z = Math.cos(t) * 8;
+    camera.lookAt(0, 0, 0);
+    renderer.render(scene, camera);
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+</script>
+
+</body>
+</html>
