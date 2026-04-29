@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ChemReact — Orbital Gallery</title>
+<style>
+  html, body { margin: 0; padding: 0; background: #080C14; color: #DCEAFF;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace; }
+  h1 { font-size: 16px; letter-spacing: 0.1em; color: #6FE7FF; padding: 18px 20px 8px; margin: 0; }
+  .sub { padding: 0 20px 18px; opacity: 0.7; font-size: 12px; }
+  .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; padding: 0 20px; }
+  .cell { background: #0d1828; border: 1px solid #2a3b55; border-radius: 10px;
+    aspect-ratio: 1; position: relative; overflow: hidden; }
+  .cell .label { position: absolute; left: 10px; top: 8px; font-size: 11px;
+    letter-spacing: 0.12em; color: #6FE7FF; z-index: 2; }
+  .cell .desc { position: absolute; left: 10px; bottom: 8px; right: 10px;
+    font-size: 10.5px; line-height: 1.35; color: #97aac8; z-index: 2; }
+  .cell canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .big { padding: 22px 20px; }
+  .big .cell { aspect-ratio: 16/9; }
+  .big .label { font-size: 13px; }
+  .picker { padding: 0 20px 12px; display: flex; gap: 10px; align-items: center;
+    font-size: 12px; }
+  .picker select { background: #0d1828; color: #DCEAFF; border: 1px solid #2a3b55;
+    padding: 6px 10px; border-radius: 6px; font-family: inherit; font-size: 12px; }
+  #status { padding: 12px 20px; font-size: 12px; color: #FFB8B8; }
+</style>
+</head>
+<body>
+
+<h1>ORBITAL GALLERY</h1>
+<div class="sub">Each cell is a 3D scene running the same code as <code>future/orbitals/orbitalShapes.js</code>. All shapes rotate continuously.</div>
+
+<div id="status"></div>
+
+<div class="grid">
+  <div class="cell" data-shape="s"><span class="label">s ORBITAL</span><span class="desc">Spherical shell. Two electrons max.</span></div>
+  <div class="cell" data-shape="p"><span class="label">p ORBITAL</span><span class="desc">3 perpendicular dumbbells (px, py, pz). Six electrons max.</span></div>
+  <div class="cell" data-shape="d"><span class="label">d ORBITAL</span><span class="desc">xy cloverleaf + dz² torus. Ten electrons max.</span></div>
+  <div class="cell" data-shape="f"><span class="label">f ORBITAL</span><span class="desc">Eight octant lobes. Fourteen electrons max.</span></div>
+</div>
+
+<div class="big">
+  <div class="picker">
+    <span style="opacity:.7">Assembled atom:</span>
+    <select id="el">
+      <option value="H"     >H — Hydrogen   (1s¹)</option>
+      <option value="He"    >He — Helium    (1s²)</option>
+      <option value="C" selected>C — Carbon  (1s² 2s² 2p²)</option>
+      <option value="O"     >O — Oxygen     (1s² 2s² 2p⁴)</option>
+      <option value="Ne"    >Ne — Neon      (1s² 2s² 2p⁶)</option>
+      <option value="Na"    >Na — Sodium    ([Ne] 3s¹)</option>
+      <option value="Fe"    >Fe — Iron      ([Ar] 3d⁶ 4s²)</option>
+      <option value="Cu"    >Cu — Copper    ([Ar] 3d¹⁰ 4s¹)</option>
+      <option value="Au"    >Au — Gold      ([Xe] 4f¹⁴ 5d¹⁰ 6s¹)</option>
+    </select>
+  </div>
+  <div class="cell" id="atomCell"><span class="label" id="atomLabel">CARBON</span></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"
+        onerror="document.getElementById('status').textContent = 'Could not load three.js from the CDN. Check your internet connection.'"></script>
+<script>
+// ───────────────────────────────────────────────────────────────────────────
+// Inlined copy of the orbital module so this file works via file:// (no
+// server, no module imports). Keep behavior identical to:
+//   future/orbitals/electronConfig.js
+//   future/orbitals/orbitalShapes.js
+//   future/orbitals/orbitalModel.js
+// ───────────────────────────────────────────────────────────────────────────
+
+const NOBLE_CORES = {
+  He: '1s2',
+  Ne: '1s2 2s2 2p6',
+  Ar: '1s2 2s2 2p6 3s2 3p6',
+  Kr: '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p6',
+  Xe: '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p6 4d10 5s2 5p6',
+  Rn: '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p6 4d10 5s2 5p6 4f14 5d10 6s2 6p6'
+};
+const SUBSHELL_RE = /^(\d)([spdf])(\d{1,2})$/;
+
+function parseConfig(cfg) {
+  if (!cfg) return [];
+  let s = cfg.trim();
+  const m = s.match(/^\[([A-Z][a-z]?)\]\s*(.*)$/);
+  if (m) s = ((NOBLE_CORES[m[1]] || '') + ' ' + m[2]).trim();
+  const out = [];
+  for (const tok of s.split(/\s+/)) {
+    const sm = tok.match(SUBSHELL_RE);
+    if (sm) out.push({ n: +sm[1], l: sm[2], count: +sm[3] });
+  }
+  const L = { s: 0, p: 1, d: 2, f: 3 };
+  out.sort((a, b) => (a.n - b.n) || (L[a.l] - L[b.l]));
+  return out;
+}
+const CAP = { s: 2, p: 6, d: 10, f: 14 };
+
+function buildDumbbell(material, ax, ay, az, length = 1.0) {
+  const grp = new THREE.Group();
+  const lobeGeo = new THREE.SphereGeometry(0.32, 18, 12);
+  const dir = new THREE.Vector3(ax, ay, az).normalize();
+  const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir);
+  for (const sgn of [1, -1]) {
+    const m = new THREE.Mesh(lobeGeo, material);
+    m.scale.set(0.7, 1.4, 0.7);
+    m.position.copy(dir.clone().multiplyScalar(sgn * length * 0.45));
+    m.quaternion.copy(q);
+    grp.add(m);
+  }
+  return grp;
+}
+function buildLobe(material, size) {
+  const m = new THREE.Mesh(new THREE.SphereGeometry(size, 16, 12), material);
+  m.scale.set(0.55, 1.0, 0.55);
+  return m;
+}
+function buildS(material) {
+  const g = new THREE.Group();
+  g.add(new THREE.Mesh(new THREE.SphereGeometry(0.55, 24, 16), material));
+  return g;
+}
+function buildP(material) {
+  const g = new THREE.Group();
+  g.add(buildDumbbell(material, 1, 0, 0));
+  g.add(buildDumbbell(material, 0, 1, 0));
+  g.add(buildDumbbell(material, 0, 0, 1));
+  return g;
+}
+function buildD(material) {
+  const g = new THREE.Group();
+  for (let i = 0; i < 4; i++) {
+    const a = (i * Math.PI) / 2 + Math.PI / 4;
+    const lobe = buildLobe(material, 0.55);
+    lobe.position.set(Math.cos(a) * 0.55, Math.sin(a) * 0.55, 0);
+    lobe.lookAt(0, 0, 0);
+    g.add(lobe);
+  }
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(0.5, 0.12, 12, 36), material);
+  ring.rotation.x = Math.PI / 2;
+  g.add(ring);
+  g.add(buildDumbbell(material, 0, 0, 1, 0.85));
+  return g;
+}
+function buildF(material) {
+  const g = new THREE.Group();
+  const r = 0.6;
+  for (let sx = -1; sx <= 1; sx += 2)
+    for (let sy = -1; sy <= 1; sy += 2)
+      for (let sz = -1; sz <= 1; sz += 2) {
+        const lobe = buildLobe(material, 0.45);
+        lobe.position.set(sx * r * 0.5, sy * r * 0.5, sz * r * 0.5);
+        lobe.lookAt(sx * r, sy * r, sz * r);
+        g.add(lobe);
+      }
+  return g;
+}
+const SHAPES = { s: buildS, p: buildP, d: buildD, f: buildF };
+const SPIN_AXIS = { s: [0,1,0], p: [1,0.3,0], d: [0.4,1,0.2], f: [0.8,0.2,0.6] };
+
+function makeShellMat(color, l, fill) {
+  const baseO = { s: 0.55, p: 0.45, d: 0.38, f: 0.32 }[l] || 0.4;
+  return new THREE.MeshBasicMaterial({
+    color, transparent: true,
+    opacity: baseO * (0.55 + 0.45 * Math.max(0.05, Math.min(1, fill))),
+    side: THREE.DoubleSide,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false
+  });
+}
+
+// ───── per-cell mini renderer ─────
+function makeRenderer(cellEl, build) {
+  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(2, devicePixelRatio));
+  cellEl.appendChild(renderer.domElement);
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 50);
+  camera.position.set(0, 0.4, 3.6);
+
+  const mat = new THREE.MeshBasicMaterial({
+    color: 0x6FE7FF, transparent: true, opacity: 0.55,
+    side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false
+  });
+  const group = build(mat);
+  scene.add(group);
+
+  const nucleus = new THREE.Mesh(
+    new THREE.SphereGeometry(0.13, 18, 12),
+    new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.95,
+      blending: THREE.AdditiveBlending, depthWrite: false })
+  );
+  scene.add(nucleus);
+
+  function resize() {
+    const r = cellEl.getBoundingClientRect();
+    renderer.setSize(r.width, r.height, false);
+    camera.aspect = r.width / r.height;
+    camera.updateProjectionMatrix();
+  }
+  resize();
+  new ResizeObserver(resize).observe(cellEl);
+
+  return { scene, group, nucleus, render: () => renderer.render(scene, camera) };
+}
+
+// ───── full atom renderer ─────
+function makeAtomRenderer(cellEl) {
+  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(2, devicePixelRatio));
+  cellEl.appendChild(renderer.domElement);
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(50, 16/9, 0.1, 50);
+  camera.position.set(0, 0.6, 6.2);
+
+  const root = new THREE.Group();
+  scene.add(root);
+  const owned = { geo: [], mat: [] };
+
+  function resize() {
+    const r = cellEl.getBoundingClientRect();
+    renderer.setSize(r.width, r.height, false);
+    camera.aspect = r.width / r.height;
+    camera.updateProjectionMatrix();
+  }
+  resize();
+  new ResizeObserver(resize).observe(cellEl);
+
+  function clear() {
+    root.clear();
+    for (const g of owned.geo) g.dispose();
+    for (const m of owned.mat) m.dispose();
+    owned.geo.length = 0; owned.mat.length = 0;
+  }
+
+  function build(element) {
+    clear();
+    const shells = parseConfig(element.config);
+    const color = new THREE.Color(element.cpkColor || element.color || '#6FE7FF');
+
+    const nucGeo = new THREE.SphereGeometry(0.18, 24, 16);
+    const nucMat = new THREE.MeshBasicMaterial({
+      color: color.clone().lerp(new THREE.Color('#ffffff'), 0.35),
+      transparent: true, opacity: 0.95,
+      blending: THREE.AdditiveBlending, depthWrite: false
+    });
+    const nucleus = new THREE.Mesh(nucGeo, nucMat);
+    root.add(nucleus);
+    owned.geo.push(nucGeo); owned.mat.push(nucMat);
+
+    const groups = [];
+    for (const sh of shells) {
+      const fill = sh.count / CAP[sh.l];
+      const mat = makeShellMat(color, sh.l, fill);
+      owned.mat.push(mat);
+      const sub = SHAPES[sh.l](mat);
+      const radius = 0.45 + (sh.n - 1) * 0.55;
+      sub.scale.setScalar(radius);
+      sub.rotation.x = (sh.n + (sh.l.charCodeAt(0) % 7)) * 0.18;
+      sub.rotation.z = (sh.l.charCodeAt(0) * 0.21) % Math.PI;
+      const ax = SPIN_AXIS[sh.l];
+      const axis = new THREE.Vector3(ax[0], ax[1], ax[2]).normalize();
+      const speed = 1.4 * Math.pow(0.55, sh.n - 1) *
+        (sh.l === 's' ? 1.0 : sh.l === 'p' ? 1.3 : sh.l === 'd' ? 1.6 : 1.9);
+      groups.push({ group: sub, axis, speed });
+      root.add(sub);
+      sub.traverse(o => { if (o.geometry) owned.geo.push(o.geometry); });
+    }
+    return { groups, nucleus };
+  }
+
+  return { renderer, scene, camera, root, build, render: () => renderer.render(scene, camera) };
+}
+
+// ───── boot ─────
+if (!window.THREE) {
+  document.getElementById('status').textContent = 'three.js failed to load — cannot render.';
+} else {
+  // Inline element data so the file works via file://. Mirrors data/elements.json.
+  const ELEMENTS = {
+    H:  { z:1,  name:'Hydrogen', config:'1s1',           cpkColor:'#FFFFFF' },
+    He: { z:2,  name:'Helium',   config:'1s2',           cpkColor:'#D9FFFF' },
+    C:  { z:6,  name:'Carbon',   config:'[He]2s2 2p2',   cpkColor:'#909090' },
+    O:  { z:8,  name:'Oxygen',   config:'[He]2s2 2p4',   cpkColor:'#FF0D0D' },
+    Ne: { z:10, name:'Neon',     config:'[He]2s2 2p6',   cpkColor:'#B3E3F5' },
+    Na: { z:11, name:'Sodium',   config:'[Ne]3s1',       cpkColor:'#AB5CF2' },
+    Fe: { z:26, name:'Iron',     config:'[Ar]3d6 4s2',   cpkColor:'#E06633' },
+    Cu: { z:29, name:'Copper',   config:'[Ar]3d10 4s1',  cpkColor:'#C88033' },
+    Au: { z:79, name:'Gold',     config:'[Xe]4f14 5d10 6s1', cpkColor:'#FFD123' }
+  };
+
+  // Mini renderers, one per shape cell.
+  const cells = document.querySelectorAll('.grid .cell');
+  const minis = [];
+  cells.forEach(cell => {
+    const shape = cell.dataset.shape;
+    const r = makeRenderer(cell, SHAPES[shape]);
+    minis.push({ ...r, shape });
+  });
+
+  // Big assembled-atom renderer.
+  const atomCell = document.getElementById('atomCell');
+  const atomLabel = document.getElementById('atomLabel');
+  const atom = makeAtomRenderer(atomCell);
+  let atomState = atom.build(ELEMENTS.C);
+  atomLabel.textContent = 'CARBON';
+
+  document.getElementById('el').addEventListener('change', (e) => {
+    const el = ELEMENTS[e.target.value];
+    atomState = atom.build(el);
+    atomLabel.textContent = el.name.toUpperCase();
+  });
+
+  // Frame loop drives all canvases.
+  let last = performance.now();
+  function frame(now) {
+    const dt = Math.min(0.05, (now - last) / 1000);
+    last = now;
+
+    // mini cells: rotate the shape group on its canonical axis.
+    for (const m of minis) {
+      const ax = SPIN_AXIS[m.shape];
+      const axis = new THREE.Vector3(ax[0], ax[1], ax[2]).normalize();
+      const speed = m.shape === 's' ? 0.7 : m.shape === 'p' ? 1.0 : m.shape === 'd' ? 1.3 : 1.6;
+      const q = new THREE.Quaternion().setFromAxisAngle(axis, speed * dt);
+      m.group.quaternion.multiplyQuaternions(q, m.group.quaternion);
+      m.nucleus.scale.setScalar(1 + Math.sin(now * 0.003) * 0.15);
+      m.render();
+    }
+
+    // big atom: per-shell rotation + nucleus pulse + global drift.
+    for (const s of atomState.groups) {
+      const q = new THREE.Quaternion().setFromAxisAngle(s.axis, s.speed * dt);
+      s.group.quaternion.multiplyQuaternions(q, s.group.quaternion);
+    }
+    atomState.nucleus.scale.setScalar(1 + Math.sin(now * 0.003) * 0.18);
+    atom.root.rotation.y += dt * 0.12;
+    atom.render();
+
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+}
+</script>
+</body>
+</html>
