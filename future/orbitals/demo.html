@@ -9,28 +9,78 @@
     font-family: ui-monospace, "SF Mono", Menlo, monospace; overflow: hidden; }
   #stage { position: fixed; inset: 0; }
   #panel { position: fixed; top: 12px; left: 12px; background: rgba(10,18,30,0.78);
-    border: 1px solid #2a3b55; border-radius: 10px; padding: 10px 12px; min-width: 220px;
-    backdrop-filter: blur(6px); }
+    border: 1px solid #2a3b55; border-radius: 10px; padding: 10px 12px; min-width: 240px;
+    backdrop-filter: blur(6px); z-index: 10; }
   #panel h1 { font-size: 13px; margin: 0 0 8px; letter-spacing: 0.08em; color: #6FE7FF; }
   #panel label { display: block; font-size: 11px; opacity: 0.7; margin-top: 6px; }
   #panel select { width: 100%; background: #0d1828; color: #DCEAFF; border: 1px solid #2a3b55;
     padding: 6px 8px; border-radius: 6px; font-family: inherit; font-size: 12px; }
   #info { font-size: 11px; line-height: 1.4; margin-top: 10px; opacity: 0.85; }
   #info b { color: #6FE7FF; }
+  #status { position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%);
+    text-align: center; max-width: 520px; padding: 18px 24px; border-radius: 10px;
+    background: rgba(10,18,30,0.92); border: 1px solid #2a3b55; z-index: 20;
+    font-size: 13px; line-height: 1.55; }
+  #status.error { border-color: #C03A3A; color: #FFB8B8; }
+  #status code { background: #0d1828; padding: 2px 6px; border-radius: 4px;
+    color: #6FE7FF; font-size: 12px; }
+  #status .hint { display: block; margin-top: 8px; opacity: 0.75; font-size: 11px; }
 </style>
 </head>
 <body>
 <div id="stage"></div>
-<div id="panel">
+
+<div id="status">Initialising…</div>
+
+<div id="panel" style="display:none">
   <h1>ORBITAL VIEWER</h1>
   <label for="el">Element</label>
   <select id="el"></select>
   <div id="info"></div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+<script>
+  // Surface any uncaught error on screen instead of letting the page go blank.
+  function showError(title, detail) {
+    const s = document.getElementById('status');
+    if (!s) return;
+    s.classList.add('error');
+    s.style.display = 'block';
+    s.innerHTML = '<b>' + title + '</b><br>' + detail;
+  }
+  window.addEventListener('error', (e) => {
+    showError('Script error', (e.message || 'unknown') +
+      (e.filename ? '<br><span class="hint">' + e.filename + ':' + e.lineno + '</span>' : ''));
+  });
+  window.addEventListener('unhandledrejection', (e) => {
+    showError('Promise rejected', (e.reason && (e.reason.message || e.reason)) || 'unknown');
+  });
+
+  // Refuse to run over file:// — modules and fetch are blocked by CORS there.
+  if (location.protocol === 'file:') {
+    showError('Open this page through a local server, not file://',
+      'In your project root run:<br><code>python3 -m http.server 8000</code><br>' +
+      'then visit <code>http://localhost:8000/future/orbitals/demo.html</code>' +
+      '<span class="hint">Browsers block ES modules and fetch() over file:// for security — that\'s why nothing renders.</span>');
+  }
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"
+        onerror="showError('Could not load three.js from CDN', 'Check your internet connection or any content blocker.')"></script>
 <script type="module">
-  import { createOrbitalModel, parseConfig } from './index.js';
+  if (location.protocol === 'file:') throw new Error('file:// blocked');
+  if (!window.THREE) throw new Error('THREE failed to load');
+
+  const status = document.getElementById('status');
+  const panel  = document.getElementById('panel');
+
+  let createOrbitalModel, parseConfig;
+  try {
+    ({ createOrbitalModel, parseConfig } = await import('./index.js'));
+  } catch (err) {
+    showError('Failed to import orbital module', String(err.message || err));
+    throw err;
+  }
 
   const elementsURL = '../../data/elements.json';
 
@@ -45,13 +95,11 @@
   const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 100);
   camera.position.set(0, 0.6, 5.2);
 
-  const hemi = new THREE.HemisphereLight(0x88aaff, 0x102030, 0.7);
-  scene.add(hemi);
+  scene.add(new THREE.HemisphereLight(0x88aaff, 0x102030, 0.7));
   const dir = new THREE.DirectionalLight(0xffffff, 0.6);
   dir.position.set(2, 3, 4);
   scene.add(dir);
 
-  // Subtle backdrop ring so depth is readable.
   const ringGeo = new THREE.RingGeometry(2.6, 2.65, 96);
   const ringMat = new THREE.MeshBasicMaterial({ color: 0x1f3556, transparent: true, opacity: 0.4, side: THREE.DoubleSide });
   const backRing = new THREE.Mesh(ringGeo, ringMat);
@@ -80,21 +128,32 @@
   }
 
   // ---------- load elements + populate select ----------
-  fetch(elementsURL).then((r) => r.json()).then((db) => {
-    const select = document.getElementById('el');
-    const symbols = Object.keys(db).sort((a, b) => db[a].z - db[b].z);
-    for (const sym of symbols) {
-      const opt = document.createElement('option');
-      opt.value = sym;
-      opt.textContent = `${sym.padEnd(2, ' ')}  Z=${db[sym].z}  ${db[sym].name}`;
-      select.appendChild(opt);
-    }
-    select.addEventListener('change', () => swap(db[select.value]));
-    select.value = 'C';
-    swap(db.C);
-  }).catch((err) => {
-    document.getElementById('info').textContent = 'Failed to load elements.json: ' + err.message;
-  });
+  let db;
+  try {
+    const res = await fetch(elementsURL);
+    if (!res.ok) throw new Error('HTTP ' + res.status + ' for ' + elementsURL);
+    db = await res.json();
+  } catch (err) {
+    showError('Failed to load elements.json', String(err.message || err) +
+      '<span class="hint">Run the server from the project ROOT (the folder containing <code>data/</code>), not from inside <code>future/orbitals/</code>.</span>');
+    throw err;
+  }
+
+  const select = document.getElementById('el');
+  const symbols = Object.keys(db).sort((a, b) => db[a].z - db[b].z);
+  for (const sym of symbols) {
+    const opt = document.createElement('option');
+    opt.value = sym;
+    opt.textContent = `${sym.padEnd(2, ' ')}  Z=${db[sym].z}  ${db[sym].name}`;
+    select.appendChild(opt);
+  }
+  select.addEventListener('change', () => swap(db[select.value]));
+  select.value = 'C';
+  swap(db.C);
+
+  // Hide the "Initialising…" overlay, show the side panel.
+  status.style.display = 'none';
+  panel.style.display = 'block';
 
   // ---------- frame loop ----------
   let last = performance.now();
