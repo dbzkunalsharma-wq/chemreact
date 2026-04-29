@@ -115,12 +115,23 @@ export function mountReactionScreen(container, deps) {
   if (reaction?.context) {
     mountText(eqCard.el, { text: reaction.context, variant: 'muted', as: 'div' }).el.classList.add('rxn-equation-context');
   }
+  // Pills describe the REACTION (the equation above them), never the compound.
+  // We merge type + energy into one pill so the language unambiguously names
+  // a reaction class (e.g. "Synthesis · Exothermic"), and difficulty stays
+  // as its own pill since it's a learning-level tag, not a chemistry property.
   if (reaction?.type || reaction?.energy || reaction?.difficulty) {
     const tags = document.createElement('div');
     tags.className = 'rxn-tags';
     eqCard.el.appendChild(tags);
-    if (reaction?.type)       mountPill(tags, { text: reaction.type,       variant: 'accent' });
-    if (reaction?.energy)     mountPill(tags, { text: reaction.energy,     variant: reaction.energy === 'exothermic' ? 'warn' : 'neutral' });
+    if (reaction?.type || reaction?.energy) {
+      const parts = [];
+      if (reaction.type)   parts.push(reaction.type.replace(/-/g, ' '));
+      if (reaction.energy) parts.push(reaction.energy);
+      mountPill(tags, {
+        text: parts.join(' · '),
+        variant: reaction.energy === 'exothermic' ? 'warn' : 'accent'
+      });
+    }
     if (reaction?.difficulty) mountPill(tags, { text: reaction.difficulty, variant: 'neutral' });
   }
 

@@ -170,6 +170,15 @@
   margin-top: 8px;
   flex-wrap: wrap;
 }
+.rc-tag-label {
+  font-size: 9px;
+  letter-spacing: 0.6px;
+  color: var(--muted);
+  text-transform: uppercase;
+  align-self: center;
+  margin-right: 2px;
+  opacity: 0.75;
+}
 .rc-tag {
   font-size: 9.5px;
   padding: 3px 7px;
