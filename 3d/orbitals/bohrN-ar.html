@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Nitrogen — AR card mock (glass)</title>
+<style>
+  :root {
+    --bg-deep:  #02040A;
+    --accent:   #6FE7FF;
+    --proton:   #FF5066;
+    --neutron:  #5CD97A;
+    --electron: #5099FF;
+    --text:     #E6F4FF;
+    --muted:    rgba(230, 244, 255, 0.55);
+    --line:     rgba(111, 231, 255, 0.18);
+    --card:     rgba(8, 14, 28, 0.78);
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg-deep); color: var(--text);
+               overflow: hidden; font-family: ui-monospace, "JetBrains Mono", Consolas, monospace; }
+
+  /* The "camera feed" simulation behind the canvas — gradient stand-in for
+     the real-world video that an AR app will composite the model over. */
+  canvas#stage { display: block; width: 100vw; height: 100vh;
+                 background:
+                   radial-gradient(ellipse 70% 55% at 50% 70%, rgba(20,40,70,0.55), transparent 65%),
+                   radial-gradient(ellipse 40% 30% at 50% 30%, rgba(80,153,255,0.10), transparent 70%),
+                   linear-gradient(180deg, #02040A 0%, #0a1424 60%, #02040A 100%);
+                 cursor: grab; }
+  canvas#stage:active { cursor: grabbing; }
+
+  /* ── AR detection chip — top center, animated like a real AR HUD ── */
+  .ar-status { position: fixed; top: 18px; left: 50%; transform: translateX(-50%);
+               display: flex; align-items: center; gap: 10px;
+               background: rgba(8,14,28,0.75); border: 1px solid var(--line);
+               border-radius: 999px; padding: 8px 16px; z-index: 6;
+               font-size: 11px; letter-spacing: 1.6px; text-transform: uppercase;
+               color: var(--accent); font-weight: 600;
+               backdrop-filter: blur(10px) saturate(140%);
+               -webkit-backdrop-filter: blur(10px) saturate(140%);
+               box-shadow: 0 6px 22px rgba(0,0,0,0.45),
+                           0 0 18px rgba(111,231,255,0.18);
+               animation: chipFade 1.0s 0.2s ease both; }
+  .ar-status .pulse { width: 8px; height: 8px; border-radius: 50%;
+                      background: #5cd97a;
+                      box-shadow: 0 0 12px #5cd97a;
+                      animation: chipPulse 1.6s ease-in-out infinite; }
+  @keyframes chipFade  { from { opacity: 0; transform: translateX(-50%) translateY(-6px); }
+                          to   { opacity: 1; transform: translateX(-50%) translateY(0); } }
+  @keyframes chipPulse { 0%, 100% { transform: scale(1);   opacity: 0.85; }
+                          50%      { transform: scale(1.4); opacity: 1.0; } }
+
+  /* ── Bottom-left info card ── */
+  .info { position: fixed; bottom: 18px; left: 18px; z-index: 5;
+          background: var(--card); border: 1px solid var(--line); border-radius: 14px;
+          padding: 14px 16px; min-width: 220px; max-width: 280px;
+          backdrop-filter: blur(10px) saturate(140%);
+          -webkit-backdrop-filter: blur(10px) saturate(140%);
+          box-shadow: 0 12px 40px rgba(0,0,0,0.45);
+          animation: fadeIn 0.6s 0.5s ease both; }
+  .info h1 { margin: 0 0 4px; font-size: 11px; letter-spacing: 2.4px;
+             text-transform: uppercase; color: var(--accent); font-weight: 600; }
+  .info .row { display: flex; align-items: baseline; gap: 12px; margin-bottom: 6px; }
+  .info .sym { font-size: 38px; font-weight: 700; line-height: 1; letter-spacing: -1px;
+               text-shadow: 0 0 20px rgba(255,80,102,0.30); color: var(--proton); }
+  .info .name { font-size: 14px; opacity: 0.9; font-weight: 500; }
+  .info .meta { font-size: 10px; color: var(--muted); letter-spacing: 1.4px; }
+  .info hr { border: none; border-top: 1px solid var(--line); margin: 10px 0; }
+  .info .config { font-size: 12px; }
+  .info .config sup { font-size: 9px; vertical-align: super; }
+  .info .shells { font-size: 11px; color: var(--muted); line-height: 1.6; margin-top: 4px; }
+  .info .shells b { color: var(--accent); font-weight: 600; }
+
+  /* ── Top-right "scan another" hint ── */
+  .hint { position: fixed; top: 60px; right: 18px; z-index: 5;
+          font-size: 10px; letter-spacing: 1.6px; text-transform: uppercase;
+          color: var(--muted); pointer-events: none;
+          animation: fadeIn 0.8s 1.2s ease both; }
+
+  /* ── 3D-tracked floating labels (HTML overlay updated per-frame) ── */
+  .label-layer { position: fixed; inset: 0; z-index: 4; pointer-events: none;
+                 overflow: hidden; }
+  .float-label { position: absolute; top: 0; left: 0;
+                 background: rgba(8,14,28,0.78);
+                 border: 1px solid var(--line); border-radius: 8px;
+                 padding: 5px 9px;
+                 backdrop-filter: blur(8px) saturate(140%);
+                 -webkit-backdrop-filter: blur(8px) saturate(140%);
+                 box-shadow: 0 6px 20px rgba(0,0,0,0.35);
+                 font-size: 10px; line-height: 1.3; color: var(--text);
+                 text-align: left; white-space: nowrap;
+                 will-change: transform, opacity;
+                 transition: opacity 0.18s ease; }
+  .float-label .head { color: var(--accent); font-weight: 600;
+                       letter-spacing: 1.4px; text-transform: uppercase;
+                       font-size: 9px; }
+  .float-label .sub { color: var(--muted); font-size: 9.5px; }
+
+  #err { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); z-index: 100;
+         max-width: 560px; background: rgba(60,20,30,0.95);
+         border: 1px solid #ff5577; color: #ffbbcc; padding: 20px; border-radius: 8px;
+         font: 13px/1.55 ui-monospace, monospace; white-space: pre-wrap; display: none; }
+  #err.visible { display: block; }
+  #err h2 { margin: 0 0 8px; color: #ff5577; font-size: 14px; }
+
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(-3px); }
+                       to   { opacity: 1; transform: translateY(0);    } }
+</style>
+</head>
+<body>
+
+<canvas id="stage"></canvas>
+
+<div class="ar-status"><span class="pulse"></span>AR card detected &middot; Nitrogen</div>
+
+<aside class="info">
+  <h1>Bohr · AR Preview</h1>
+  <div class="row">
+    <div class="sym">N</div>
+    <div>
+      <div class="name">Nitrogen</div>
+      <div class="meta">Z = 7 &middot; A = 14</div>
+    </div>
+  </div>
+  <hr>
+  <div class="config">1s<sup>2</sup> 2s<sup>2</sup> 2p<sup>3</sup></div>
+  <div class="shells"><b>K</b> shell · 2 e<sup>&minus;</sup>  ·  <b>L</b> shell · 5 e<sup>&minus;</sup></div>
+</aside>
+
+<div class="hint">drag to look around &middot; idle auto-rotates</div>
+
+<div class="label-layer">
+  <div class="float-label" id="lbl-nucleus">
+    <div class="head">Nucleus</div>
+    <div class="sub">7p<sup>+</sup> &middot; 7n<sup>0</sup></div>
+  </div>
+</div>
+
+<div id="err"><h2>Error</h2><div id="err-msg"></div></div>
+
+<script>
+  const errEl = document.getElementById('err');
+  const errMsg = document.getElementById('err-msg');
+  function showError(title, msg) {
+    errEl.querySelector('h2').textContent = title;
+    errMsg.textContent = msg;
+    errEl.classList.add('visible');
+  }
+  window.addEventListener('error', function (e) {
+    showError('JavaScript Error', String(e.message || e) + '\n' + ((e.error && e.error.stack) || ''));
+  });
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"
+        onerror="showError('CDN load failed','three.min.js could not be fetched. Open with internet on first run.')"></script>
+
+<script>
+if (!window.THREE) {
+  showError('THREE not available', 'window.THREE is undefined.');
+} else {
+(function () {
+  'use strict';
+  const THREE = window.THREE;
+
+  // ═══════════════════════════════════════════════════════════════════
+  // ARCHITECTURE
+  // ───────────────────────────────────────────────────────────────────
+  // The atom builder is a self-contained factory:
+  //
+  //   buildNitrogenAtom(envMap, opts)
+  //     returns { group, update(dt), dispose, anchor }
+  //
+  // `group` is a regular THREE.Group with no scene assumptions. To wire
+  // this into a real AR scene later (replacing the static "card mesh"
+  // below with a MindAR-detected target), do:
+  //
+  //   const atom = buildNitrogenAtom(envMap);
+  //   const cardAnchor = new THREE.Group();
+  //   cardAnchor.matrixAutoUpdate = false;       // MindAR sets matrix
+  //   cardAnchor.add(atom.group);
+  //   scene.add(cardAnchor);
+  //
+  //   session.onMatrixUpdate(({ targetId, worldMatrix }) => {
+  //     cardAnchor.matrix.fromArray(worldMatrix);
+  //     cardAnchor.matrixWorldNeedsUpdate = true;
+  //   });
+  //
+  // The atom hovers above its parent at atom.group.position.y, so the
+  // AR card target's pose carries the entire model.
+  // ═══════════════════════════════════════════════════════════════════
+
+  // ─── Scene/renderer setup ──────────────────────────────────────────
+  const canvas = document.getElementById('stage');
+  const renderer = new THREE.WebGLRenderer({
+    canvas: canvas, antialias: true, alpha: true,
+    powerPreference: 'high-performance'
+  });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setClearColor(0x000000, 0);
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.05;
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.1, 100);
+
+  // ─── Procedural environment cube map ───
+  // MeshPhysicalMaterial transmission/clearcoat need *something* to reflect
+  // for glass to look like glass. We build a tiny gradient cubemap on a
+  // canvas — no external HDR file, works file://.
+  function makeGradientFace(stops) {
+    const c = document.createElement('canvas');
+    c.width = c.height = 128;
+    const x = c.getContext('2d');
+    const g = x.createLinearGradient(0, 0, 0, 128);
+    for (let i = 0; i < stops.length; i++) g.addColorStop(stops[i][0], stops[i][1]);
+    x.fillStyle = g;
+    x.fillRect(0, 0, 128, 128);
+    // Tiny vignette so glass picks up rim light from edges.
+    const v = x.createRadialGradient(64, 64, 30, 64, 64, 90);
+    v.addColorStop(0, 'rgba(255,255,255,0)');
+    v.addColorStop(1, 'rgba(0,0,0,0.35)');
+    x.fillStyle = v;
+    x.fillRect(0, 0, 128, 128);
+    return c;
+  }
+  const envFaces = [
+    makeGradientFace([[0,'#1a3550'],[1,'#0a1828']]), // +X
+    makeGradientFace([[0,'#2a4565'],[1,'#0a1828']]), // -X
+    makeGradientFace([[0,'#3a5575'],[1,'#1a2535']]), // +Y (sky)
+    makeGradientFace([[0,'#0a1020'],[1,'#000510']]), // -Y (floor)
+    makeGradientFace([[0,'#1a3050'],[1,'#0a1828']]), // +Z
+    makeGradientFace([[0,'#2a4060'],[1,'#0a1828']])  // -Z
+  ];
+  const envMap = new THREE.CubeTexture(envFaces);
+  envMap.colorSpace = THREE.SRGBColorSpace;
+  envMap.needsUpdate = true;
+  scene.environment = envMap;
+
+  // ─── Lighting ───
+  // A weak ambient + key/fill/rim coloured point lights. The point-light
+  // colours (proton red + electron blue + accent cyan) tint reflections
+  // on the glass spheres so they read as belonging to this scene.
+  scene.add(new THREE.AmbientLight(0xffffff, 0.45));
+  const keyLight = new THREE.DirectionalLight(0xffffff, 1.4);
+  keyLight.position.set(4, 6, 5);
+  scene.add(keyLight);
+  const fillLight = new THREE.PointLight(0xff5066, 0.9, 12);
+  fillLight.position.set(-3, 1.5, -2);
+  scene.add(fillLight);
+  const rimLight = new THREE.PointLight(0x6FE7FF, 1.1, 12);
+  rimLight.position.set(2, -1, -3);
+  scene.add(rimLight);
+
+  // ═══════════════════════════════════════════════════════════════════
+  // CARD MESH — the static stand-in for an AR-detected marker.
+  // Replace with a MindAR-anchored Group to ship.
+  // ═══════════════════════════════════════════════════════════════════
+
+  function buildCard() {
+    const cw = 3.6, ch = 5.2;
+    const c = document.createElement('canvas');
+    c.width = 360; c.height = 520;
+    const x = c.getContext('2d');
+
+    // Card background (deep teal gradient).
+    const bg = x.createLinearGradient(0, 0, 0, 520);
+    bg.addColorStop(0, '#1a2a45');
+    bg.addColorStop(0.5, '#0f1828');
+    bg.addColorStop(1, '#080C14');
+    x.fillStyle = bg;
+    x.fillRect(0, 0, 360, 520);
+
+    // Outer cyan border + inner shadow.
+    x.strokeStyle = '#6FE7FF';
+    x.lineWidth = 4;
+    x.strokeRect(8, 8, 344, 504);
+    x.strokeStyle = 'rgba(111,231,255,0.25)';
+    x.lineWidth = 1;
+    x.strokeRect(16, 16, 328, 488);
+
+    // Atomic number top-left.
+    x.fillStyle = '#6FE7FF';
+    x.font = 'bold 32px ui-monospace, Consolas, monospace';
+    x.textAlign = 'left';
+    x.textBaseline = 'top';
+    x.fillText('7', 28, 30);
+
+    // Atomic mass top-right.
+    x.fillStyle = 'rgba(230,244,255,0.6)';
+    x.font = '16px ui-monospace, Consolas, monospace';
+    x.textAlign = 'right';
+    x.fillText('14.007', 332, 38);
+
+    // Element symbol — huge, centered.
+    x.font = 'bold 220px sans-serif';
+    x.textAlign = 'center';
+    x.textBaseline = 'middle';
+    // Subtle glow under symbol
+    x.shadowColor = 'rgba(255,80,102,0.5)';
+    x.shadowBlur = 32;
+    x.fillStyle = '#FF5066';
+    x.fillText('N', 180, 240);
+    x.shadowBlur = 0;
+
+    // Element name.
+    x.fillStyle = '#E6F4FF';
+    x.font = 'bold 28px sans-serif';
+    x.fillText('NITROGEN', 180, 380);
+
+    // Config.
+    x.fillStyle = 'rgba(230,244,255,0.6)';
+    x.font = '14px ui-monospace, Consolas, monospace';
+    x.fillText('1s² 2s² 2p³', 180, 420);
+
+    // AR-marker corner (decorative — real .mind targets use richer textures).
+    function arCorner(cx, cy) {
+      x.strokeStyle = '#6FE7FF'; x.lineWidth = 2;
+      x.strokeRect(cx - 18, cy - 18, 36, 36);
+      x.fillStyle = '#6FE7FF';
+      x.fillRect(cx - 7, cy - 7, 14, 14);
+    }
+    arCorner(40, 480);
+    arCorner(320, 480);
+
+    const tex = new THREE.CanvasTexture(c);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+
+    const geo = new THREE.PlaneGeometry(cw, ch);
+    const mat = new THREE.MeshPhysicalMaterial({
+      map: tex, metalness: 0.0, roughness: 0.45,
+      clearcoat: 0.6, clearcoatRoughness: 0.2,
+      envMapIntensity: 0.4
+    });
+    const mesh = new THREE.Mesh(geo, mat);
+    // Tilted-back like a card on a table viewed from low angle.
+    mesh.rotation.x = -Math.PI / 2 * 0.86;
+    mesh.position.y = -2.7;
+    mesh.position.z = 0.4;
+
+    // Soft cyan ground glow under the card — sells the "lit by atom above" idea.
+    const glowGeo = new THREE.CircleGeometry(2.2, 48);
+    const glowCanvas = document.createElement('canvas');
+    glowCanvas.width = glowCanvas.height = 256;
+    const gx = glowCanvas.getContext('2d');
+    const radial = gx.createRadialGradient(128, 128, 0, 128, 128, 128);
+    radial.addColorStop(0, 'rgba(111,231,255,0.55)');
+    radial.addColorStop(0.5, 'rgba(111,231,255,0.18)');
+    radial.addColorStop(1, 'rgba(111,231,255,0)');
+    gx.fillStyle = radial;
+    gx.fillRect(0, 0, 256, 256);
+    const glowTex = new THREE.CanvasTexture(glowCanvas);
+    glowTex.colorSpace = THREE.SRGBColorSpace;
+    const glowMat = new THREE.MeshBasicMaterial({
+      map: glowTex, transparent: true, depthWrite: false,
+      blending: THREE.AdditiveBlending
+    });
+    const glowMesh = new THREE.Mesh(glowGeo, glowMat);
+    glowMesh.position.set(0, -2.69, 0.4);
+    glowMesh.rotation.x = -Math.PI / 2 * 0.86;
+
+    const cardGroup = new THREE.Group();
+    cardGroup.add(mesh);
+    cardGroup.add(glowMesh);
+
+    return {
+      group: cardGroup,
+      _owned: { geos: [geo, glowGeo], mats: [mat, glowMat], texs: [tex, glowTex] }
+    };
+  }
+
+  const card = buildCard();
+  scene.add(card.group);
+
+  // ═══════════════════════════════════════════════════════════════════
+  // BUILD NITROGEN — glass spheres + 3D ring labels.
+  // Self-contained: pass envMap, get a Group + update + dispose.
+  // ═══════════════════════════════════════════════════════════════════
+
+  function fibSphere(N, radius) {
+    const out = new Array(N);
+    const off = 2 / N;
+    const inc = Math.PI * (3 - Math.sqrt(5));
+    for (let i = 0; i < N; i++) {
+      const y = ((i * off) - 1) + (off / 2);
+      const r = Math.sqrt(1 - y * y);
+      const phi = i * inc;
+      out[i] = new THREE.Vector3(
+        Math.cos(phi) * r * radius,
+        y * radius,
+        Math.sin(phi) * r * radius
+      );
+    }
+    return out;
+  }
+
+  // Sprite label generator — used for "K · 2e⁻" labels riding on the rings.
+  function makeRingLabel(text, accentHex) {
+    const c = document.createElement('canvas');
+    c.width = 256; c.height = 64;
+    const x = c.getContext('2d');
+    // Pill background
+    x.fillStyle = 'rgba(8,14,28,0.88)';
+    if (x.roundRect) { x.beginPath(); x.roundRect(2, 2, 252, 60, 14); x.fill(); }
+    else { x.fillRect(2, 2, 252, 60); }
+    // Border
+    x.strokeStyle = accentHex;
+    x.lineWidth = 1.5;
+    if (x.roundRect) { x.beginPath(); x.roundRect(2, 2, 252, 60, 14); x.stroke(); }
+    else { x.strokeRect(2, 2, 252, 60); }
+    // Inner glow
+    x.shadowColor = accentHex;
+    x.shadowBlur = 12;
+    // Text
+    x.font = 'bold 30px ui-monospace, "JetBrains Mono", Consolas, monospace';
+    x.fillStyle = '#fff';
+    x.textAlign = 'center';
+    x.textBaseline = 'middle';
+    x.fillText(text, 128, 34);
+    x.shadowBlur = 0;
+
+    const tex = new THREE.CanvasTexture(c);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+    const mat = new THREE.SpriteMaterial({
+      map: tex, transparent: true, depthWrite: false,
+      depthTest: false  // labels always read on top of geometry
+    });
+    const s = new THREE.Sprite(mat);
+    s.scale.set(1.15, 0.29, 1);
+    return { sprite: s, _owned: { tex, mat } };
+  }
+
+  function buildNitrogenAtom(env, opts) {
+    opts = opts || {};
+    const root = new THREE.Group();
+    const ownedGeos = [];
+    const ownedMats = [];
+    const ownedTexs = [];
+
+    // ── Glass material factory ──
+    // Tinted glass: partial transmission shows scene through, attenuationColor
+    // tints what passes; clearcoat gives a wet-shine highlight on top.
+    function glassMat(colorHex, opts2) {
+      opts2 = opts2 || {};
+      const m = new THREE.MeshPhysicalMaterial({
+        color: colorHex,
+        metalness: 0.05,
+        roughness: opts2.roughness ?? 0.10,
+        transmission: opts2.transmission ?? 0.35,
+        thickness: opts2.thickness ?? 0.4,
+        ior: 1.5,
+        clearcoat: 1.0,
+        clearcoatRoughness: 0.04,
+        envMap: env,
+        envMapIntensity: opts2.envMapIntensity ?? 1.4,
+        attenuationColor: colorHex,
+        attenuationDistance: opts2.attenuationDistance ?? 1.6,
+        emissive: opts2.emissiveHex ?? colorHex,
+        emissiveIntensity: opts2.emissiveIntensity ?? 0.18
+      });
+      ownedMats.push(m);
+      return m;
+    }
+
+    const matProton   = glassMat(0xFF5066, { transmission: 0.30, emissiveIntensity: 0.22 });
+    const matNeutron  = glassMat(0x5CD97A, { transmission: 0.30, emissiveIntensity: 0.20 });
+    const matElectron = glassMat(0x5099FF, { transmission: 0.50, emissiveIntensity: 0.32, attenuationDistance: 1.0 });
+
+    // Shared sphere geos (allocated once; instances share).
+    const NUC_R = 0.20, ELE_R = 0.17;
+    const geoNuc      = new THREE.SphereGeometry(NUC_R, 24, 18);
+    const geoElectron = new THREE.SphereGeometry(ELE_R, 24, 18);
+    ownedGeos.push(geoNuc, geoElectron);
+
+    // ── Nucleus ──
+    const Z = 7, NN = 7;
+    const nucleus = new THREE.Group();
+    root.add(nucleus);
+    const nucleonRest = fibSphere(Z + NN, 0.42);
+    const nucleonRecords = [];
+    for (let i = 0; i < Z + NN; i++) {
+      const isProton = i < Z;
+      const wrap = new THREE.Group();
+      wrap.position.copy(nucleonRest[i]);
+      const m = new THREE.Mesh(geoNuc, isProton ? matProton : matNeutron);
+      wrap.add(m);
+      nucleus.add(wrap);
+      nucleonRecords.push({
+        group: wrap,
+        base: nucleonRest[i].clone(),
+        phase: Math.random() * Math.PI * 2,
+        speed: 1.0 + Math.random() * 0.8,
+        amp: 0.014 + Math.random() * 0.012
+      });
+    }
+
+    // ── Shells ──
+    const SHELL_K_R = 1.55;
+    const SHELL_L_R = 3.15;
+    const OMEGA_K = 1.20;
+    const OMEGA_L = OMEGA_K / Math.pow(2, 1.6);
+    const SHELL_K_AXIS = new THREE.Vector3(0.05, 1.00, 0.10).normalize();
+    const SHELL_L_AXIS = new THREE.Vector3(0.18, 1.00, -0.12).normalize();
+
+    function ringMat() {
+      const m = new THREE.MeshPhysicalMaterial({
+        color: 0x6FE7FF, metalness: 0.6, roughness: 0.25,
+        envMap: env, envMapIntensity: 0.9,
+        emissive: 0x6FE7FF, emissiveIntensity: 0.25,
+        transparent: true, opacity: 0.8
+      });
+      ownedMats.push(m);
+      return m;
+    }
+
+    const shells = [];
+
+    function buildShell(name, n, radius, eCount, omega, axis, labelText) {
+      const sg = new THREE.Group();
+      const q = new THREE.Quaternion();
+      q.setFromUnitVectors(new THREE.Vector3(0, 1, 0), axis);
+      sg.quaternion.copy(q);
+
+      // Glass torus ring (tinted cyan).
+      const ringGeo = new THREE.TorusGeometry(radius, 0.028 + n * 0.005, 12, 96);
+      ownedGeos.push(ringGeo);
+      const ring = new THREE.Mesh(ringGeo, ringMat());
+      ring.rotation.x = Math.PI / 2;
+      sg.add(ring);
+
+      // 3D label sprite riding on the ring at angle 0.
+      const lbl = makeRingLabel(labelText, '#6FE7FF');
+      ownedTexs.push(lbl._owned.tex);
+      ownedMats.push(lbl._owned.mat);
+      // Position on the ring's local xz plane, slightly above.
+      lbl.sprite.position.set(radius, 0.45, 0);
+      sg.add(lbl.sprite);
+
+      // Glass electrons.
+      const electrons = new Array(eCount);
+      for (let k = 0; k < eCount; k++) {
+        const angle = (k / eCount) * Math.PI * 2;
+        const wrap = new THREE.Group();
+        wrap.position.set(Math.cos(angle) * radius, 0, Math.sin(angle) * radius);
+        const m = new THREE.Mesh(geoElectron, matElectron);
+        wrap.add(m);
+        sg.add(wrap);
+        electrons[k] = { wrap: wrap, angle: angle };
+      }
+
+      root.add(sg);
+      shells.push({ name, n, radius, omega, group: sg, electrons, label: lbl.sprite });
+    }
+
+    buildShell('K', 1, SHELL_K_R, 2, OMEGA_K, SHELL_K_AXIS, 'K · n=1 · 2e⁻');
+    buildShell('L', 2, SHELL_L_R, 5, OMEGA_L, SHELL_L_AXIS, 'L · n=2 · 5e⁻');
+
+    let pulseT = 0;
+
+    function update(dt) {
+      if (typeof dt !== 'number' || !isFinite(dt) || dt <= 0) return;
+      pulseT += dt;
+      // Nucleus pulse + tumble + per-nucleon jitter.
+      nucleus.scale.setScalar(1 + Math.sin(pulseT * 1.7) * 0.04);
+      nucleus.rotation.y += 0.20 * dt;
+      nucleus.rotation.x += 0.07 * dt;
+      for (let i = 0; i < nucleonRecords.length; i++) {
+        const r = nucleonRecords[i];
+        const ph = pulseT * r.speed + r.phase;
+        r.group.position.set(
+          r.base.x + Math.sin(ph * 1.3) * r.amp,
+          r.base.y + Math.sin(ph * 0.9 + 1.7) * r.amp,
+          r.base.z + Math.sin(ph * 1.1 + 3.1) * r.amp
+        );
+      }
+      // Electrons advance in shell-local angle.
+      for (let i = 0; i < shells.length; i++) {
+        const sh = shells[i];
+        const da = sh.omega * dt;
+        for (let k = 0; k < sh.electrons.length; k++) {
+          const e = sh.electrons[k];
+          e.angle += da;
+          e.wrap.position.set(
+            Math.cos(e.angle) * sh.radius, 0,
+            Math.sin(e.angle) * sh.radius
+          );
+        }
+      }
+    }
+
+    function dispose() {
+      for (let i = 0; i < ownedGeos.length; i++) try { ownedGeos[i].dispose(); } catch(_) {}
+      for (let i = 0; i < ownedMats.length; i++) try { ownedMats[i].dispose(); } catch(_) {}
+      for (let i = 0; i < ownedTexs.length; i++) try { ownedTexs[i].dispose(); } catch(_) {}
+      while (root.children.length > 0) root.remove(root.children[0]);
+    }
+
+    return {
+      group: root,
+      update: update,
+      dispose: dispose,
+      shells: shells,
+      nucleus: nucleus,
+      protonCount: Z,
+      neutronCount: NN
+    };
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  // MOUNT — atom anchored above card. Replace card with AR target later.
+  // ═══════════════════════════════════════════════════════════════════
+
+  const atom = buildNitrogenAtom(envMap);
+  // Anchor group represents what the AR target's matrix would drive.
+  const arAnchor = new THREE.Group();
+  scene.add(arAnchor);
+  arAnchor.add(atom.group);
+  // Atom hovers above the card (which sits at y = -2.7).
+  atom.group.position.y = 0.4;
+
+  // ─── Drag-to-rotate camera + idle auto-orbit ───
+  const CAM_DIST = 9.5;
+  let theta = -Math.PI * 0.50;
+  let phi   = Math.PI * 0.42;
+  let velTheta = 0, velPhi = 0;
+  let isDragging = false, prevX = 0, prevY = 0;
+  let lastInteraction = -Infinity;
+
+  canvas.addEventListener('pointerdown', function (e) {
+    isDragging = true; prevX = e.clientX; prevY = e.clientY;
+    velTheta = velPhi = 0; lastInteraction = performance.now();
+    canvas.setPointerCapture(e.pointerId);
+  });
+  canvas.addEventListener('pointermove', function (e) {
+    if (!isDragging) return;
+    const dx = e.clientX - prevX, dy = e.clientY - prevY;
+    const dampX = -dx * 0.0085, dampY = -dy * 0.0085;
+    theta += dampX;
+    phi   = Math.max(0.18, Math.min(Math.PI - 0.18, phi + dampY));
+    velTheta = dampX; velPhi = dampY;
+    prevX = e.clientX; prevY = e.clientY;
+    lastInteraction = performance.now();
+  });
+  function endDrag() { isDragging = false; }
+  canvas.addEventListener('pointerup', endDrag);
+  canvas.addEventListener('pointercancel', endDrag);
+  canvas.addEventListener('pointerleave', endDrag);
+
+  function updateCamera(dt, now) {
+    if (!isDragging) {
+      theta += velTheta;
+      phi   = Math.max(0.18, Math.min(Math.PI - 0.18, phi + velPhi));
+      const decay = Math.pow(0.9, dt * 60);
+      velTheta *= decay; velPhi *= decay;
+      if ((now - lastInteraction) > 1500 &&
+          Math.abs(velTheta) < 0.0008 && Math.abs(velPhi) < 0.0008) {
+        theta += 0.05 * dt;
+      }
+    }
+    const sp = Math.sin(phi), cp = Math.cos(phi);
+    camera.position.set(
+      CAM_DIST * sp * Math.cos(theta),
+      CAM_DIST * cp,
+      CAM_DIST * sp * Math.sin(theta)
+    );
+    camera.lookAt(0, -0.4, 0);  // look slightly down so card is in frame
+  }
+
+  // ─── Resize ───
+  window.addEventListener('resize', function () {
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+  });
+
+  // ─── Floating HTML label tracking nucleus ───
+  const nucLabel = document.getElementById('lbl-nucleus');
+  const _projScratch = new THREE.Vector3();
+  function updateHtmlLabels() {
+    _projScratch.set(0, 0.4, 0).project(camera);
+    if (_projScratch.z > 1) { nucLabel.style.opacity = '0'; return; }
+    const w = window.innerWidth, h = window.innerHeight;
+    const sx = (_projScratch.x *  0.5 + 0.5) * w + 18;
+    const sy = (_projScratch.y * -0.5 + 0.5) * h - 28;
+    nucLabel.style.transform = 'translate3d(' + Math.round(sx) + 'px,' + Math.round(sy) + 'px,0)';
+    nucLabel.style.opacity = '0.95';
+  }
+
+  // ─── Scan-in animation ───
+  // The atom emerges from the card's surface (y = -2.7) up to its hover
+  // position (y = 0.4) over 1.4s with a cubic-ease-out, scaling 0→1.
+  let scanT = 0;
+  const SCAN_DURATION = 1.4;
+  const SCAN_START_Y = -2.5;
+  const SCAN_END_Y   = 0.4;
+
+  // ─── Animation loop ───
+  let last = performance.now();
+  let idleT = 0;
+
+  function tick(now) {
+    const dt = Math.min(0.05, (now - last) / 1000);
+    last = now;
+
+    // Scan-in lifecycle.
+    if (scanT < SCAN_DURATION) {
+      scanT = Math.min(SCAN_DURATION, scanT + dt);
+      const t = scanT / SCAN_DURATION;
+      const eased = 1 - Math.pow(1 - t, 3);
+      atom.group.position.y = SCAN_START_Y + (SCAN_END_Y - SCAN_START_Y) * eased;
+      atom.group.scale.setScalar(0.05 + 0.95 * eased);
+    } else {
+      // Idle hover bob.
+      idleT += dt;
+      atom.group.position.y = SCAN_END_Y + Math.sin(idleT * 1.0) * 0.08;
+    }
+
+    // Atom internal animation (independent of mount).
+    atom.update(dt);
+
+    // Slow whole-atom Y rotation (separate from camera orbit) — sells the
+    // "model in AR space" effect.
+    atom.group.rotation.y += 0.18 * dt;
+
+    updateCamera(dt, now);
+    renderer.render(scene, camera);
+    updateHtmlLabels();
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+
+  // ─── Cleanup ───
+  window.addEventListener('beforeunload', function () {
+    atom.dispose();
+    for (const g of card._owned.geos) try { g.dispose(); } catch(_) {}
+    for (const m of card._owned.mats) try { m.dispose(); } catch(_) {}
+    for (const t of card._owned.texs) try { t.dispose(); } catch(_) {}
+    try { envMap.dispose(); } catch(_) {}
+    try { renderer.dispose(); } catch(_) {}
+  });
+
+  // Console debug surface.
+  window.bohrAR = { scene, camera, renderer, atom, card, arAnchor };
+})();
+}
+</script>
+
+</body>
+</html>
