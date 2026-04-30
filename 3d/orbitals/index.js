@@ -7,3 +7,4 @@
 export { parseConfig, subshellCapacity } from './electronConfig.js';
 export { buildSubshellGroup }             from './orbitalShapes.js';
 export { createOrbitalModel }             from './orbitalModel.js';
+export { createBohrModel }                from './bohrModel.js';
