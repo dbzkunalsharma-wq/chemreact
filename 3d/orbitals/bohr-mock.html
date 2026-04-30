@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bohr Mock — multi-element + glass + pedagogy</title>
+<style>
+  :root {
+    --bg-deep: #02040A; --accent: #6FE7FF;
+    --proton: #FF5066; --neutron: #5CD97A; --electron: #5099FF;
+    --text: #E6F4FF; --muted: rgba(230,244,255,0.55);
+    --line: rgba(111,231,255,0.18); --card: rgba(8,14,28,0.78);
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { margin:0; height:100%; background:var(--bg-deep); color:var(--text);
+               overflow:hidden; font-family: ui-monospace,"JetBrains Mono",Consolas,monospace; }
+  canvas#stage { display:block; width:100vw; height:100vh;
+    background:
+      radial-gradient(ellipse 70% 55% at 50% 70%, rgba(20,40,70,0.55), transparent 65%),
+      radial-gradient(ellipse 40% 30% at 50% 30%, rgba(80,153,255,0.10), transparent 70%),
+      linear-gradient(180deg, #02040A 0%, #0a1424 60%, #02040A 100%);
+    cursor:grab; }
+  canvas#stage:active { cursor:grabbing; }
+
+  /* AR-style detection chip */
+  .ar-status { position:fixed; top:18px; left:50%; transform:translateX(-50%);
+    display:flex; align-items:center; gap:10px;
+    background:rgba(8,14,28,0.75); border:1px solid var(--line);
+    border-radius:999px; padding:8px 16px; z-index:6;
+    font-size:11px; letter-spacing:1.6px; text-transform:uppercase;
+    color:var(--accent); font-weight:600;
+    backdrop-filter:blur(10px) saturate(140%); -webkit-backdrop-filter:blur(10px) saturate(140%);
+    box-shadow:0 6px 22px rgba(0,0,0,0.45),0 0 18px rgba(111,231,255,0.18);
+    animation:fadeIn 0.6s ease both; }
+  .ar-status .pulse { width:8px; height:8px; border-radius:50%; background:#5cd97a;
+    box-shadow:0 0 12px #5cd97a; animation:chipPulse 1.6s ease-in-out infinite; }
+  @keyframes chipPulse { 0%,100%{transform:scale(1);opacity:0.85;} 50%{transform:scale(1.4);opacity:1;} }
+
+  /* Element picker (top-left) */
+  .picker { position:fixed; top:18px; left:18px; z-index:6;
+    background:var(--card); border:1px solid var(--line); border-radius:12px;
+    padding:10px 12px; min-width:180px;
+    backdrop-filter:blur(10px) saturate(140%); -webkit-backdrop-filter:blur(10px) saturate(140%);
+    box-shadow:0 8px 24px rgba(0,0,0,0.4); }
+  .picker label { display:block; font-size:9px; letter-spacing:1.6px;
+    text-transform:uppercase; color:var(--muted); margin-bottom:4px; }
+  .picker select { width:100%; background:rgba(8,12,20,0.9);
+    border:1px solid rgba(111,231,255,0.3); color:var(--text);
+    font:inherit; font-size:12px; padding:6px 8px; border-radius:6px; cursor:pointer; }
+
+  /* Bottom-left info card */
+  .info { position:fixed; bottom:18px; left:18px; z-index:5;
+    background:var(--card); border:1px solid var(--line); border-radius:14px;
+    padding:14px 16px; min-width:240px; max-width:300px;
+    backdrop-filter:blur(10px) saturate(140%); -webkit-backdrop-filter:blur(10px) saturate(140%);
+    box-shadow:0 12px 40px rgba(0,0,0,0.45); }
+  .info h1 { margin:0 0 4px; font-size:11px; letter-spacing:2.4px;
+    text-transform:uppercase; color:var(--accent); font-weight:600; }
+  .info .row { display:flex; align-items:baseline; gap:12px; margin-bottom:6px; }
+  .info .sym { font-size:38px; font-weight:700; line-height:1; letter-spacing:-1px;
+    text-shadow:0 0 20px var(--el-glow, rgba(255,80,102,0.30)); color:var(--el-color, var(--proton)); }
+  .info .name { font-size:14px; opacity:0.9; font-weight:500; }
+  .info .meta { font-size:10px; color:var(--muted); letter-spacing:1.4px; }
+  .info hr { border:none; border-top:1px solid var(--line); margin:10px 0; }
+  .info .config { font-size:12px; }
+  .info .config sup { font-size:9px; vertical-align:super; }
+  .info .shells { font-size:11px; color:var(--muted); line-height:1.6; }
+  .info .shells b { color:var(--accent); font-weight:600; }
+
+  /* Right-side control panel */
+  .controls { position:fixed; top:64px; right:18px; z-index:6;
+    background:var(--card); border:1px solid var(--line); border-radius:12px;
+    padding:12px; min-width:200px;
+    backdrop-filter:blur(10px) saturate(140%); -webkit-backdrop-filter:blur(10px) saturate(140%);
+    box-shadow:0 8px 24px rgba(0,0,0,0.4);
+    display:flex; flex-direction:column; gap:8px;
+    animation:fadeIn 0.8s 0.4s ease both; }
+  .controls .ttl { font-size:9px; letter-spacing:1.6px; text-transform:uppercase;
+    color:var(--muted); margin-bottom:2px; }
+  .ctrl-btn { background:rgba(8,12,20,0.85); border:1px solid var(--line);
+    color:var(--text); font:inherit; font-size:11px; padding:8px 10px;
+    border-radius:8px; cursor:pointer; text-align:left;
+    transition:background 0.15s, border-color 0.15s, transform 0.1s; }
+  .ctrl-btn:hover { background:rgba(111,231,255,0.1); border-color:var(--accent); }
+  .ctrl-btn:active { transform:scale(0.97); }
+  .ctrl-btn.on { background:rgba(111,231,255,0.18); color:var(--accent);
+    border-color:rgba(111,231,255,0.5); }
+  .ctrl-btn .kbd { float:right; opacity:0.55; font-size:10px; letter-spacing:1px; }
+
+  /* Bottom hint */
+  .hint { position:fixed; bottom:18px; right:18px; z-index:5;
+    font-size:10px; letter-spacing:1.6px; text-transform:uppercase;
+    color:var(--muted); pointer-events:none; max-width:240px; text-align:right;
+    animation:fadeIn 0.8s 1.2s ease both; }
+
+  #err { position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); z-index:100;
+    max-width:560px; background:rgba(60,20,30,0.95);
+    border:1px solid #ff5577; color:#ffbbcc; padding:20px; border-radius:8px;
+    font:13px/1.55 ui-monospace,monospace; white-space:pre-wrap; display:none; }
+  #err.visible { display:block; }
+  #err h2 { margin:0 0 8px; color:#ff5577; font-size:14px; }
+
+  @keyframes fadeIn { from{opacity:0;transform:translateY(-3px);} to{opacity:1;transform:translateY(0);} }
+</style>
+</head>
+<body>
+
+<canvas id="stage"></canvas>
+
+<div class="ar-status"><span class="pulse"></span><span id="ar-text">AR card detected · Loading…</span></div>
+
+<div class="picker">
+  <label for="el-pick">Element</label>
+  <select id="el-pick"></select>
+</div>
+
+<aside class="info" id="info-card">
+  <h1>Bohr · AR Mock</h1>
+  <div class="row">
+    <div class="sym" id="info-sym">N</div>
+    <div>
+      <div class="name" id="info-name">Nitrogen</div>
+      <div class="meta" id="info-meta">Z = 7 · A = 14</div>
+    </div>
+  </div>
+  <hr>
+  <div class="config" id="info-config">1s² 2s² 2p³</div>
+  <div class="shells" id="info-shells"></div>
+</aside>
+
+<div class="controls">
+  <div class="ttl">Pedagogy</div>
+  <button class="ctrl-btn"     id="btn-energy">Energy levels<span class="kbd">E</span></button>
+  <button class="ctrl-btn"     id="btn-valence">Valence pulse<span class="kbd">V</span></button>
+  <button class="ctrl-btn"     id="btn-mode">Bohr ↔ QM<span class="kbd">M</span></button>
+  <button class="ctrl-btn"     id="btn-transition">Drop electron<span class="kbd">T</span></button>
+  <div class="ttl" style="margin-top:6px;">Atom state</div>
+  <button class="ctrl-btn"     id="btn-restore">Restore (un-ionize)<span class="kbd">R</span></button>
+  <button class="ctrl-btn"     id="btn-explode">Explode<span class="kbd">X</span></button>
+</div>
+
+<div class="hint">drag to rotate · pinch / scroll to zoom · tap card to ionize · tap atoms for info</div>
+
+<div id="err"><h2>Error</h2><div id="err-msg"></div></div>
+
+<script>
+  // Error surfacing
+  const errEl = document.getElementById('err');
+  function showError(title, msg) {
+    errEl.querySelector('h2').textContent = title;
+    errEl.querySelector('#err-msg') ? (errEl.querySelector('#err-msg').textContent = msg)
+                                    : (errEl.lastElementChild.textContent = msg);
+    errEl.classList.add('visible');
+  }
+  // err panel uses a unnamed second div in original; ensure textContent works:
+  if (!document.getElementById('err-msg')) {
+    const d = document.createElement('div'); d.id = 'err-msg';
+    document.getElementById('err').appendChild(d);
+  }
+  window.addEventListener('error', function (e) {
+    showError('JavaScript Error', String(e.message || e) + '\n' + ((e.error && e.error.stack) || ''));
+  });
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"
+        onerror="showError('CDN load failed','three.min.js could not be fetched.')"></script>
+
+<!-- Module load order matters: data → factory → visual/pedagogy/interactions -->
+<script src="./elements.js"></script>
+<script src="./buildAtom.js"></script>
+<script src="./visualPolish.js"></script>
+<script src="./pedagogy.js"></script>
+<script src="./interactions.js"></script>
+
+<script>
+if (!window.THREE) {
+  showError('THREE not available', 'window.THREE is undefined.');
+} else if (!window.BOHR_ELEMENTS || !window.buildBohrAtom) {
+  showError('Module load failed',
+    'BOHR_ELEMENTS or buildBohrAtom missing — module scripts may not have loaded. ' +
+    'If opened via file://, your browser may be blocking sibling <script src> loads. ' +
+    'Try serving from http://localhost:8090/3d/orbitals/bohr-mock.html instead.');
+} else {
+(function () {
+  'use strict';
+  const THREE = window.THREE;
+
+  // ─── Scene / renderer ─────────────────────────────────────────────────
+  const canvas = document.getElementById('stage');
+  const renderer = new THREE.WebGLRenderer({
+    canvas: canvas, antialias: true, alpha: true,
+    powerPreference: 'high-performance'
+  });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setClearColor(0x000000, 0);
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.05;
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.1, 100);
+
+  // ─── Procedural envMap (same as bohrN-ar.html) ───────────────────────
+  function makeGradientFace(stops) {
+    const c = document.createElement('canvas'); c.width = c.height = 128;
+    const x = c.getContext('2d');
+    const g = x.createLinearGradient(0, 0, 0, 128);
+    for (const s of stops) g.addColorStop(s[0], s[1]);
+    x.fillStyle = g; x.fillRect(0, 0, 128, 128);
+    const v = x.createRadialGradient(64, 64, 30, 64, 64, 90);
+    v.addColorStop(0, 'rgba(255,255,255,0)');
+    v.addColorStop(1, 'rgba(0,0,0,0.35)');
+    x.fillStyle = v; x.fillRect(0, 0, 128, 128);
+    return c;
+  }
+  const envMap = new THREE.CubeTexture([
+    makeGradientFace([[0,'#1a3550'],[1,'#0a1828']]),
+    makeGradientFace([[0,'#2a4565'],[1,'#0a1828']]),
+    makeGradientFace([[0,'#3a5575'],[1,'#1a2535']]),
+    makeGradientFace([[0,'#0a1020'],[1,'#000510']]),
+    makeGradientFace([[0,'#1a3050'],[1,'#0a1828']]),
+    makeGradientFace([[0,'#2a4060'],[1,'#0a1828']])
+  ]);
+  envMap.colorSpace = THREE.SRGBColorSpace; envMap.needsUpdate = true;
+  scene.environment = envMap;
+
+  // ─── Lights ───────────────────────────────────────────────────────────
+  scene.add(new THREE.AmbientLight(0xffffff, 0.45));
+  const keyLight = new THREE.DirectionalLight(0xffffff, 1.4);
+  keyLight.position.set(4, 6, 5); scene.add(keyLight);
+  const fillLight = new THREE.PointLight(0xff5066, 0.9, 12);
+  fillLight.position.set(-3, 1.5, -2); scene.add(fillLight);
+  const rimLight = new THREE.PointLight(0x6FE7FF, 1.1, 12);
+  rimLight.position.set(2, -1, -3); scene.add(rimLight);
+
+  // ─── Card factory (per-element) ───────────────────────────────────────
+  function buildCard(el) {
+    const cw = 3.6, ch = 5.2;
+    const c = document.createElement('canvas'); c.width = 360; c.height = 520;
+    const x = c.getContext('2d');
+    const bg = x.createLinearGradient(0, 0, 0, 520);
+    bg.addColorStop(0, '#1a2a45'); bg.addColorStop(0.5, '#0f1828'); bg.addColorStop(1, '#080C14');
+    x.fillStyle = bg; x.fillRect(0, 0, 360, 520);
+    x.strokeStyle = '#6FE7FF'; x.lineWidth = 4; x.strokeRect(8, 8, 344, 504);
+    x.strokeStyle = 'rgba(111,231,255,0.25)'; x.lineWidth = 1; x.strokeRect(16, 16, 328, 488);
+    x.fillStyle = '#6FE7FF'; x.font = 'bold 32px ui-monospace, Consolas, monospace';
+    x.textAlign = 'left'; x.textBaseline = 'top';
+    x.fillText(String(el.z), 28, 30);
+    x.fillStyle = 'rgba(230,244,255,0.6)'; x.font = '16px ui-monospace, Consolas, monospace';
+    x.textAlign = 'right'; x.fillText((el.mass || 0).toFixed(3), 332, 38);
+    // Big symbol
+    const symbol = el._key || el.name?.[0] || 'X';
+    x.font = 'bold 220px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
+    x.shadowColor = el.cpkColor || '#FF5066'; x.shadowBlur = 32;
+    x.fillStyle = el.cpkColor || '#FF5066'; x.fillText(symbol, 180, 240);
+    x.shadowBlur = 0;
+    x.fillStyle = '#E6F4FF'; x.font = 'bold 28px sans-serif';
+    x.fillText((el.name || '').toUpperCase(), 180, 380);
+    x.fillStyle = 'rgba(230,244,255,0.6)'; x.font = '14px ui-monospace, Consolas, monospace';
+    x.fillText(el.config || '', 180, 420);
+    function arCorner(cx, cy) {
+      x.strokeStyle = '#6FE7FF'; x.lineWidth = 2;
+      x.strokeRect(cx - 18, cy - 18, 36, 36);
+      x.fillStyle = '#6FE7FF'; x.fillRect(cx - 7, cy - 7, 14, 14);
+    }
+    arCorner(40, 480); arCorner(320, 480);
+
+    const tex = new THREE.CanvasTexture(c);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+    const geo = new THREE.PlaneGeometry(cw, ch);
+    const mat = new THREE.MeshPhysicalMaterial({
+      map: tex, metalness: 0, roughness: 0.45,
+      clearcoat: 0.6, clearcoatRoughness: 0.2, envMapIntensity: 0.4
+    });
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.rotation.x = -Math.PI / 2 * 0.86;
+    mesh.position.set(0, -2.7, 0.4);
+    mesh.userData.kind = 'card';   // for interactions raycast
+    return { mesh, _owned: { geos:[geo], mats:[mat], texs:[tex] } };
+  }
+
+  // ─── Mount state ──────────────────────────────────────────────────────
+  let currentElement = null, currentSymbol = 'N';
+  let atom = null, card = null;
+  let pedagogy = null, interactions = null;
+  let shadow = null, caustics = null;
+  const arAnchor = new THREE.Group(); scene.add(arAnchor);
+
+  function disposeAll() {
+    if (interactions) { try { interactions.dispose(); } catch(_) {} interactions = null; }
+    if (pedagogy) { try { pedagogy.dispose(); } catch(_) {} pedagogy = null; }
+    if (atom) { try { arAnchor.remove(atom.group); atom.dispose(); } catch(_) {} atom = null; }
+    if (shadow) { try { scene.remove(shadow.mesh); shadow.dispose(); } catch(_) {} shadow = null; }
+    if (caustics) { try { scene.remove(caustics.mesh); caustics.dispose(); } catch(_) {} caustics = null; }
+    if (card) {
+      try { scene.remove(card.mesh); } catch(_) {}
+      for (const g of card._owned.geos) try { g.dispose(); } catch(_) {}
+      for (const m of card._owned.mats) try { m.dispose(); } catch(_) {}
+      for (const t of card._owned.texs) try { t.dispose(); } catch(_) {}
+      card = null;
+    }
+  }
+
+  // Run-time scan animation tracker
+  let scanT = 0;
+  const SCAN_DURATION = 1.4;
+  const SCAN_START_Y = -2.5;
+  const SCAN_END_Y = 0.4;
+  let idleT = 0;
+
+  function mountElement(symbol) {
+    disposeAll();
+    const el = window.BOHR_ELEMENTS[symbol];
+    if (!el) { showError('Unknown element', 'No data for ' + symbol); return; }
+    el._key = symbol;       // useful for the card painter
+    currentElement = el; currentSymbol = symbol;
+
+    // Card
+    card = buildCard(el); scene.add(card.mesh);
+
+    // Atom
+    atom = window.buildBohrAtom(el, envMap);
+    arAnchor.add(atom.group);
+    atom.group.position.y = SCAN_END_Y;
+    scanT = 0; idleT = 0;
+
+    // Visual extras
+    shadow = window.makeAtomShadow({ size: 1.8, baseY: -2.65 }); scene.add(shadow.mesh);
+    caustics = window.makeCaustics({ size: 2.4, baseY: -2.66, intensity: 0.4 });
+    scene.add(caustics.mesh);
+
+    // Pedagogy
+    pedagogy = new window.PedagogyLayer(scene, atom, { camera: camera });
+
+    // Interactions
+    interactions = window.attachInteractions(canvas, atom, scene, camera, {
+      cardMesh: card.mesh,
+      getCameraDistance: function () { return camDist; },
+      setCameraDistance: function (v) { camDist = v; },
+      onIonize: function (info) {
+        document.getElementById('ar-text').textContent =
+          (atom.element.name) + (atom.isIonized ? ' · IONIZED (+' + (atom.protonCount - atom.electronCount) + ')' : ' · neutral');
+      }
+    });
+
+    // Apply current toggle states to the new atom
+    if (toggleState.energy)  pedagogy.showEnergyLabels(true);
+    if (toggleState.valence) pedagogy.pulseValenceShell(true);
+    if (toggleState.qm)      pedagogy.setModelMode('qm-stylized');
+
+    // UI sync
+    refreshInfoPanel(symbol, el);
+    document.getElementById('ar-text').textContent = 'AR card detected · ' + el.name;
+  }
+
+  // ─── Element picker ───────────────────────────────────────────────────
+  const sel = document.getElementById('el-pick');
+  for (const sym of Object.keys(window.BOHR_ELEMENTS)) {
+    const e = window.BOHR_ELEMENTS[sym];
+    const opt = document.createElement('option');
+    opt.value = sym; opt.textContent = sym + ' · ' + e.name;
+    if (sym === 'N') opt.selected = true;
+    sel.appendChild(opt);
+  }
+  sel.addEventListener('change', function () { mountElement(sel.value); });
+
+  // ─── Info panel sync ──────────────────────────────────────────────────
+  function refreshInfoPanel(sym, el) {
+    document.getElementById('info-sym').textContent = sym;
+    document.getElementById('info-sym').style.setProperty('--el-color', el.cpkColor || '#FF5066');
+    document.getElementById('info-name').textContent = el.name;
+    document.getElementById('info-meta').textContent =
+      'Z = ' + el.z + ' · A = ' + Math.round(el.mass);
+    document.getElementById('info-config').innerHTML =
+      el.config.replace(/(\d)([spdf])(\d{1,2})/g, '$1$2<sup>$3</sup>');
+    const shellNames = ['K', 'L', 'M', 'N', 'O', 'P'];
+    const html = el.shellCounts.map(function (c, i) {
+      const isVal = i === el.shellCounts.length - 1;
+      return (isVal ? '<b>' + shellNames[i] + '</b>' : shellNames[i]) +
+             ' (n=' + (i+1) + '): ' + c + ' e⁻';
+    }).join(' · ');
+    document.getElementById('info-shells').innerHTML = html;
+  }
+
+  // ─── Toggle state + control buttons ───────────────────────────────────
+  const toggleState = { energy: false, valence: false, qm: false };
+  function bindToggle(btnId, key, onTrue, onFalse) {
+    const btn = document.getElementById(btnId);
+    btn.addEventListener('click', function () {
+      toggleState[key] = !toggleState[key];
+      btn.classList.toggle('on', toggleState[key]);
+      (toggleState[key] ? onTrue : onFalse)();
+    });
+  }
+  bindToggle('btn-energy',  'energy',  () => pedagogy.showEnergyLabels(true),  () => pedagogy.showEnergyLabels(false));
+  bindToggle('btn-valence', 'valence', () => pedagogy.pulseValenceShell(true), () => pedagogy.pulseValenceShell(false));
+  bindToggle('btn-mode',    'qm',      () => pedagogy.setModelMode('qm-stylized'), () => pedagogy.setModelMode('bohr'));
+
+  document.getElementById('btn-transition').addEventListener('click', function () {
+    if (!atom || !pedagogy) return;
+    const shells = atom.shells;
+    // Pick the highest shell that has electrons, drop one to inner shell.
+    for (let i = shells.length - 1; i > 0; i--) {
+      if (shells[i].electrons.length > 0) {
+        pedagogy.triggerElectronTransition(i, i - 1);
+        return;
+      }
+    }
+  });
+  document.getElementById('btn-restore').addEventListener('click', function () {
+    if (atom) atom.setIonized(0);
+    document.getElementById('ar-text').textContent =
+      'AR card detected · ' + atom.element.name + ' · neutral';
+  });
+  document.getElementById('btn-explode').addEventListener('click', function () {
+    if (interactions && interactions.triggerExplode) interactions.triggerExplode();
+    else if (interactions && interactions.explode)   interactions.explode();
+  });
+
+  // Keyboard shortcuts
+  window.addEventListener('keydown', function (e) {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+    const k = e.key.toLowerCase();
+    if (k === 'e') document.getElementById('btn-energy').click();
+    else if (k === 'v') document.getElementById('btn-valence').click();
+    else if (k === 'm') document.getElementById('btn-mode').click();
+    else if (k === 't') document.getElementById('btn-transition').click();
+    else if (k === 'r') document.getElementById('btn-restore').click();
+    else if (k === 'x') document.getElementById('btn-explode').click();
+  });
+
+  // ─── Camera (drag-to-rotate + zoom-bound shared with interactions) ────
+  let camDist = 9.5;
+  let theta = -Math.PI * 0.50, phi = Math.PI * 0.42;
+  let velTheta = 0, velPhi = 0;
+  let isDragging = false, prevX = 0, prevY = 0;
+  let lastInteraction = -Infinity;
+
+  // Note: interactions module attaches its own pointer handlers for tap +
+  // pinch zoom. We keep camera-drag here so the two layers don't fight
+  // (interactions checks if its raycast hit something; if not, it leaves
+  // pointer events alone and our drag handler catches them).
+  // To avoid dual-capture we use stage-canvas pointermove for rotate.
+  canvas.addEventListener('pointerdown', function (e) {
+    if (e.target !== canvas) return;
+    isDragging = true; prevX = e.clientX; prevY = e.clientY;
+    velTheta = velPhi = 0; lastInteraction = performance.now();
+  });
+  canvas.addEventListener('pointermove', function (e) {
+    if (!isDragging) return;
+    const dx = e.clientX - prevX, dy = e.clientY - prevY;
+    if (Math.abs(dx) + Math.abs(dy) < 1) return;
+    const dampX = -dx * 0.0085, dampY = -dy * 0.0085;
+    theta += dampX;
+    phi   = Math.max(0.18, Math.min(Math.PI - 0.18, phi + dampY));
+    velTheta = dampX; velPhi = dampY;
+    prevX = e.clientX; prevY = e.clientY;
+    lastInteraction = performance.now();
+  });
+  function endDrag() { isDragging = false; }
+  canvas.addEventListener('pointerup', endDrag);
+  canvas.addEventListener('pointercancel', endDrag);
+  canvas.addEventListener('pointerleave', endDrag);
+
+  function updateCamera(dt, now) {
+    if (!isDragging) {
+      theta += velTheta;
+      phi   = Math.max(0.18, Math.min(Math.PI - 0.18, phi + velPhi));
+      const decay = Math.pow(0.9, dt * 60);
+      velTheta *= decay; velPhi *= decay;
+      if ((now - lastInteraction) > 1500 &&
+          Math.abs(velTheta) < 0.0008 && Math.abs(velPhi) < 0.0008) {
+        theta += 0.05 * dt;
+      }
+    }
+    const sp = Math.sin(phi), cp = Math.cos(phi);
+    camera.position.set(camDist * sp * Math.cos(theta), camDist * cp, camDist * sp * Math.sin(theta));
+    camera.lookAt(0, -0.4, 0);
+  }
+
+  // ─── Bloom composer ───────────────────────────────────────────────────
+  const bloom = window.setupBloomComposer(renderer, scene, camera, {
+    strength: 0.65, threshold: 0.42
+  });
+
+  window.addEventListener('resize', function () {
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    if (bloom && bloom.resize) bloom.resize(window.innerWidth, window.innerHeight);
+  });
+
+  // ─── First mount ──────────────────────────────────────────────────────
+  mountElement('N');
+
+  // ─── Animation loop ───────────────────────────────────────────────────
+  let last = performance.now();
+  const electronPositionsScratch = [];
+  function tick(now) {
+    const dt = Math.min(0.05, (now - last) / 1000);
+    last = now;
+
+    // Scan-in / idle bob
+    if (scanT < SCAN_DURATION) {
+      scanT = Math.min(SCAN_DURATION, scanT + dt);
+      const t = scanT / SCAN_DURATION;
+      const eased = 1 - Math.pow(1 - t, 3);
+      atom.group.position.y = SCAN_START_Y + (SCAN_END_Y - SCAN_START_Y) * eased;
+      atom.group.scale.setScalar(0.05 + 0.95 * eased);
+    } else {
+      idleT += dt;
+      atom.group.position.y = SCAN_END_Y + Math.sin(idleT * 1.0) * 0.08;
+    }
+
+    // Atom internal animation (skip if exploding — interactions takes over)
+    if (!interactions || !interactions.isExploding) atom.update(dt);
+    if (interactions) interactions.update(dt);
+    if (pedagogy) pedagogy.update(dt);
+
+    // Whole-atom Y rotation
+    atom.group.rotation.y += 0.18 * dt;
+
+    // Visual polish: shadow + caustics
+    if (shadow) shadow.update(dt, atom.group.position.y);
+    if (caustics) {
+      // gather electron world positions for caustic phase
+      electronPositionsScratch.length = 0;
+      for (const sh of atom.shells) for (const e of sh.electrons)
+        electronPositionsScratch.push(e.wrap.position);
+      caustics.update(dt, electronPositionsScratch);
+    }
+
+    updateCamera(dt, now);
+    bloom.render();    // post-processed render
+
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+
+  // Console debug surface
+  window.bohrMock = {
+    get atom() { return atom; }, get pedagogy() { return pedagogy; },
+    get interactions() { return interactions; }, get card() { return card; },
+    scene, camera, renderer, envMap, mountElement,
+    elements: window.BOHR_ELEMENTS
+  };
+})();
+}
+</script>
+
+</body>
+</html>
