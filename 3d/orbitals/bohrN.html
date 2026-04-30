@@ -69,6 +69,57 @@
           transition: opacity 0.5s ease; }
   .hint.dim { opacity: 0; }
 
+  /* Floating 3D-tracked labels — absolute-positioned divs whose transform is
+     updated per frame from a projected world Vector3. Pointer-events off so
+     they never block the drag-rotate gesture. */
+  .label-layer { position: fixed; inset: 0; z-index: 4; pointer-events: none;
+                 overflow: hidden; }
+  .float-label { position: absolute; top: 0; left: 0;
+                 background: rgba(8, 14, 28, 0.78);
+                 border: 1px solid var(--line); border-radius: 8px;
+                 padding: 6px 10px; min-width: 92px;
+                 backdrop-filter: blur(8px) saturate(140%);
+                 -webkit-backdrop-filter: blur(8px) saturate(140%);
+                 box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35),
+                             0 0 18px rgba(111, 231, 255, 0.10);
+                 font-size: 11px; line-height: 1.4; color: var(--text);
+                 text-align: left; white-space: nowrap;
+                 will-change: transform, opacity;
+                 transition: opacity 0.18s ease; }
+  .float-label .head { color: var(--accent); font-weight: 600;
+                       letter-spacing: 1.4px; text-transform: uppercase;
+                       font-size: 9.5px; margin-bottom: 1px; }
+  .float-label .sub  { color: var(--muted); font-size: 10px; }
+  .float-label .pill { display: inline-block;
+                       padding: 1px 6px; border-radius: 8px;
+                       background: rgba(111, 231, 255, 0.10);
+                       border: 1px solid var(--line);
+                       color: var(--accent); font-weight: 600;
+                       font-size: 10px; margin-left: 4px; }
+  /* Color the head by category. */
+  .float-label.lbl-nucleus  .head { color: var(--proton); }
+  .float-label.lbl-k        .head { color: var(--electron); }
+  .float-label.lbl-l        .head { color: var(--electron); }
+
+  /* Stat strip — floating row at the top center of the screen. */
+  .stat-strip { position: fixed; top: 18px; left: 50%;
+                transform: translateX(-50%);
+                display: flex; gap: 8px; z-index: 5;
+                animation: fadeIn 0.8s 0.2s ease both; }
+  .stat-cell { background: var(--card); border: 1px solid var(--line);
+               border-radius: 10px; padding: 8px 14px;
+               backdrop-filter: blur(8px) saturate(140%);
+               -webkit-backdrop-filter: blur(8px) saturate(140%);
+               box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3); }
+  .stat-cell .lab { font-size: 9px; letter-spacing: 1.6px;
+                    text-transform: uppercase; color: var(--muted);
+                    margin-bottom: 2px; }
+  .stat-cell .val { font-size: 16px; color: var(--text); font-weight: 600;
+                    font-variant-numeric: tabular-nums; }
+  .stat-cell.proton  .val { color: var(--proton); }
+  .stat-cell.neutron .val { color: var(--neutron); }
+  .stat-cell.electron .val { color: var(--electron); }
+
   /* Error overlay (CDN failure / no THREE / WebGL refused). */
   #err { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 100;
          max-width: 560px; background: rgba(60, 20, 30, 0.95);
@@ -105,6 +156,28 @@
     <span class="dot electron"></span>Electron (&times; 7)
   </div>
 </aside>
+
+<div class="stat-strip">
+  <div class="stat-cell proton">  <div class="lab">Protons</div><div class="val">7</div></div>
+  <div class="stat-cell neutron"> <div class="lab">Neutrons</div><div class="val">7</div></div>
+  <div class="stat-cell electron"><div class="lab">Electrons</div><div class="val">7</div></div>
+  <div class="stat-cell">         <div class="lab">Mass A</div><div class="val">14</div></div>
+</div>
+
+<div class="label-layer">
+  <div class="float-label lbl-nucleus" id="lbl-nucleus">
+    <div class="head">Nucleus</div>
+    <div class="sub">7p<sup>+</sup> &middot; 7n<sup>0</sup></div>
+  </div>
+  <div class="float-label lbl-k" id="lbl-k">
+    <div class="head">K shell <span class="pill">n=1</span></div>
+    <div class="sub">2 e<sup>&minus;</sup> &middot; r<sub>1</sub> &middot; &omega;<sub>1</sub> = 1.20 rad/s</div>
+  </div>
+  <div class="float-label lbl-l" id="lbl-l">
+    <div class="head">L shell <span class="pill">n=2</span></div>
+    <div class="sub">5 e<sup>&minus;</sup> &middot; r<sub>2</sub> &approx; 4r<sub>1</sub> &middot; slower</div>
+  </div>
+</div>
 
 <div class="hint" id="hint">drag to rotate &middot; auto-rotates when idle</div>
 
@@ -395,6 +468,47 @@ if (!window.THREE) {
     camera.updateProjectionMatrix();
   });
 
+  // ─── Floating labels — per-frame projection of world points to screen ──
+  // Each label has a fixed world position (in root's local space) plus a
+  // small screen-space offset so the card sits beside the feature, not on it.
+  // Opacity fades when the point goes behind the camera (z > 1 in NDC).
+  const labelEntries = [
+    {
+      el: document.getElementById('lbl-nucleus'),
+      world: new THREE.Vector3(0, 0, 0),
+      offsetX: 14, offsetY: -52      // up-right of the nucleus
+    },
+    {
+      el: document.getElementById('lbl-k'),
+      world: new THREE.Vector3(-SHELL_K_R, 0, 0),
+      offsetX: -120, offsetY: -10    // left of K-shell-leftmost-point
+    },
+    {
+      el: document.getElementById('lbl-l'),
+      world: new THREE.Vector3(SHELL_L_R, 0, 0),
+      offsetX: 22, offsetY: -10      // right of L-shell-rightmost-point
+    }
+  ];
+  const _projScratch = new THREE.Vector3();
+
+  function updateLabels() {
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    for (let i = 0; i < labelEntries.length; i++) {
+      const e = labelEntries[i];
+      // World point includes the root drift on Y.
+      _projScratch.copy(e.world).add(root.position).project(camera);
+      // Behind-camera (z > 1) → hide entirely.
+      if (_projScratch.z > 1) { e.el.style.opacity = '0'; continue; }
+      const sx = (_projScratch.x *  0.5 + 0.5) * w + e.offsetX;
+      const sy = (_projScratch.y * -0.5 + 0.5) * h + e.offsetY;
+      e.el.style.transform = 'translate3d(' + Math.round(sx) + 'px,' + Math.round(sy) + 'px,0)';
+      // Fade slightly when the point sits in the back half of the depth range.
+      const depthFade = Math.max(0.45, 1 - Math.max(0, _projScratch.z) * 0.6);
+      e.el.style.opacity = depthFade.toFixed(2);
+    }
+  }
+
   // ─── Animation loop ───
   let last = performance.now();
   let pulseT = 0;
@@ -444,6 +558,7 @@ if (!window.THREE) {
 
     updateCamera(dt, now);
     renderer.render(scene, camera);
+    updateLabels();          // run AFTER camera update so projections are fresh
     requestAnimationFrame(tick);
   }
   requestAnimationFrame(tick);
